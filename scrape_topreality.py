@@ -28,13 +28,12 @@ os.chdir(working_dir)
 
 # explore/exploit proxies
 
-#   modifikoat epsilon-greedy, weighted exploration
+#   change epsilon-greedy, weighted exploration
 #   thompson sampling
-#   merat zmenu pozicii proxies, cca 40% proxies ne nepouzitelnych, tj ked je zmena pozicii minimalna, tieto explorovat minimalne
-#   ukladat tiez meany banditov
-#   ratat priemer proxy je ok? median?
-#   prisposobit wait() rychlostiam proxy
-#   preco maju nejake proxy casy vacsie ako je timeout v requeste???
+#   measure proxies position channge, around 40% of proxies are not usable, so when change is minimal, explore these minimal
+#   track bandits means
+#   adapt wait() to proxies speed
+#   why some responses have higher time than specified timeout???
 
 def proxy_pool_test(proxy_list, browser_list):
     url = 'https://httpbin.org/ip'
@@ -59,7 +58,6 @@ class proxyPool:
         self.nr_of_bandits = len(self.proxy_for_bandits)
         self.all_proxies = {proxy:{'response_times':[], 'mean':15.0} for proxy in proxy_list}
         self.bandits = {bandit:15 for bandit in range(self.nr_of_bandits)}
-        #self.bandits = [Bandit(self.proxy_for_bandits[i]) for i in range(self.nr_of_bandits)]
         self.eps = eps
         
     def choose_proxy(self):
@@ -110,9 +108,7 @@ class TopRealityAd:
             useragent = random.choice(self.useragents_list)
             try:
                 response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
-                #bandit.update(response.elapsed.total_seconds())
             except:
-                # tu tiez musim spravit update banditu a  poolu
                 self.proxy_pool.update(proxy, 30)
                 attempts += 1
             else:
