@@ -5,9 +5,6 @@ Created on Thu Aug 16 09:25:07 2018
 @author: j.klen
 """
 
-# scrape slovakian, hungarian, czech elite proxies and randomly mix them, as separate function
-# scrape browser headers from https://developers.whatismybrowser.com/useragents/explore/, as separate function
-
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
@@ -24,25 +21,76 @@ import datetime
 import scipy.stats
 import base64
 import random
+import numpy as np
 
 working_dir = 'C:\\Users\\j.klen\\PythonProjects\\scrape'
 os.chdir(working_dir)
 
-# need to check proxies during execution if they are good or bad, (explore-exploit?)20/80
-# meausure time of processing request
-# visualize distribution of waits()
+# explore/exploit proxies
 
-class pool:
-    def __init__(self, some_list):
-        self.some_list = some_list
-        self.choosed_numbers = []
-    def choose(self):
-        a = random.choice(self.some_list)
-        self.choosed_numbers.append(a)
-        return(a)
+#   modifikoat epsilon-greedy, weighted exploration
+#   thompson sampling
+#   merat zmenu pozicii proxies, cca 40% proxies ne nepouzitelnych, tj ked je zmena pozicii minimalna, tieto explorovat minimalne
+#   ukladat tiez meany banditov
+#   ratat priemer proxy je ok? median?
+#   prisposobit wait() rychlostiam proxy
+#   preco maju nejake proxy casy vacsie ako je timeout v requeste???
+
+def proxy_pool_test(proxy_list, browser_list):
+    url = 'https://httpbin.org/ip'
+    proxy_pool = proxyPool(proxy_list, 10, 0.4)
+    for i in range(2000):
+        print('Request nr. %d' % i)
+        wait()
+        proxy = proxy_pool.choose_proxy()
+        user_agent = random.choice(browser_list)
+        try:
+            response = requests.get(url, proxies = {'http':proxy, 'https':proxy}, headers = {'User-Agent': user_agent}, timeout = 30)
+        except:
+            proxy_pool.update(proxy, 30)
+        else:
+            proxy_pool.update(proxy, response.elapsed.total_seconds())
+    return proxy_pool
+
+class proxyPool:
+    def __init__(self, proxy_list, proxies_in_bandit, eps):
+        self.proxies_in_bandit = proxies_in_bandit # nr of proxies in bandit
+        self.proxy_for_bandits = [proxy_list[i:i + proxies_in_bandit] for i in range(0, len(proxy_list), proxies_in_bandit)]
+        self.nr_of_bandits = len(self.proxy_for_bandits)
+        self.all_proxies = {proxy:{'response_times':[], 'mean':15.0} for proxy in proxy_list}
+        self.bandits = {bandit:15 for bandit in range(self.nr_of_bandits)}
+        #self.bandits = [Bandit(self.proxy_for_bandits[i]) for i in range(self.nr_of_bandits)]
+        self.eps = eps
+        
+    def choose_proxy(self):
+        p = random.random()
+        if p < self.eps:
+            bandit = random.choice([i for i in self.bandits][1:]) # except the fastest bandit
+        else:
+            bandit = 0
+        proxy = random.choice(self.proxy_for_bandits[bandit])
+        print('Choosen bandit: %d and proxy: %s, chosen times %d and rolling mean %d' % (bandit, proxy, len(self.all_proxies[proxy]['response_times']), self.all_proxies[proxy]['mean']))
+        
+        return proxy
+        
+        
+    def update(self, proxy, response_time, window = 10):
+        print('Response time %d' % response_time)
+        self.all_proxies[proxy]['response_times'].append(response_time)
+        self.all_proxies[proxy]['mean'] = np.mean(self.all_proxies[proxy]['response_times'][-window:]) # rolling window of proxies response times
+        self.ordered_proxies = sorted(self.all_proxies, key = lambda k:self.all_proxies[k]['mean'])
+        self.proxy_for_bandits = [self.ordered_proxies[i:i + self.proxies_in_bandit] for i in range(0, len(self.ordered_proxies), self.proxies_in_bandit)]
+        # calculate new proxies bandits mean from self.all_proxies
+        bandit_means = []
+        for bproxylist in self.proxy_for_bandits:
+            prmeans_list = []
+            for proxy in bproxylist:
+                prmeans_list.append(self.all_proxies[proxy]['mean'])
+            bandit_means.append(np.mean([i for i in prmeans_list if i != None]))
+        print(('bandits means', bandit_means))
 
 class TopRealityAd:
-    def __init__(self, url, proxy_list, useragents_list, pool_item):
+    def __init__(self, url, proxy_pool, useragents_list):
         self.url = url
         self.properties = {}
         self.text = None
@@ -51,27 +99,24 @@ class TopRealityAd:
         self.gallerylinks = []
         self.seller = {}
         self.mapcoord = {}
-        self.proxy_list = proxy_list
+        self.proxy_pool = proxy_pool
         self.useragents_list = useragents_list
-        self.pool_item = pool_item
-        
-        pool_item.choose()
-        pool_item.choose()
-        pool_item.choose()
-        print(pool_item.choosed_numbers)
                 
         success = False
         attempts = 0
         while success == False:
             wait()
-            proxy = random.choice(self.proxy_list)
+            proxy = self.proxy_pool.choose_proxy()
             useragent = random.choice(self.useragents_list)
             try:
-                response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 15)
-                print(response.elapsed.total_seconds())
+                response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
+                #bandit.update(response.elapsed.total_seconds())
             except:
+                # tu tiez musim spravit update banditu a  poolu
+                self.proxy_pool.update(proxy, 30)
                 attempts += 1
             else:
+                self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                 self.soup = BeautifulSoup(response.content, 'html.parser')
                 success = True
         print('Top reality ad response successful, attempts: ' + str(attempts + 1))
@@ -121,17 +166,21 @@ class TopRealityAd:
                 attempts = 1
                 while success == False:
                     wait()
-                    proxy = random.choice(self.proxy_list)
+                    proxy = self.proxy_pool.choose_proxy()
                     useragent = random.choice(self.useragents_list)
                     try:
-                        response = requests.get(pic_link, stream = True, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 15)
-                        success = True
+                        response = requests.get(pic_link, stream = True, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
+                        
+                    except:
+                        self.proxy_pool.update(proxy, 30)
+                        attempts += 1
+                        #pass
+                    else:
+                        self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                         with open(gallery_dir + '/' + 'img' + str(i) + '.jpg', 'wb') as out_file:
                             shutil.copyfileobj(response.raw, out_file)
                         print('Picture %d saved successfuly, attempts: %d' %(i + 1, attempts))
-                    except:
-                        attempts += 1
-                        #pass
+                        success = True
     
     def scrape_seller(self):        
         try:
@@ -252,31 +301,39 @@ def scrape_proxies():
             'http://www.gatherproxy.com/proxylist/country/?c=Hungary']
     for url in urls:
         wait()
-        driver.get(url)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        for tr in soup.find_all('tr', {'type':'Elite'}):
-            proxy_list.append(tr['prx'])
-    print('Scraping gatherproxy successful')
+        try:
+            driver.get(url)
+        except:
+            print('%s not available.' % url)
+        else:
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            for tr in soup.find_all('tr', {'type':'Elite'}):
+                proxy_list.append(tr['prx'])
+            print('Scraping %s successful' % url)
     
     # http://spys.one/free-proxy-list/SK/
-    driver.get('http://spys.one/free-proxy-list/SK/')
-    select_proxy_type = Select(driver.find_element_by_id('xf1'))
-    select_proxy_type.select_by_value('4')  # high anonymous proxy
-    wait()
-    select_ssl = Select(driver.find_element_by_id('xf2'))
-    select_ssl.select_by_value('1') # https
-    wait()
-    select_http = Select(driver.find_element_by_id('xf5'))
-    select_http.select_by_value('1') 
-    
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-    
-    for tr in soup.find_all('tr', {'class':['spy1x', 'spy1xx']})[2:]:
-        soup = tr.td.find_all('font')[1]
-        proxy_regex = re.search('class="spy14">(\d{1,3}\.\d{1,3}\.\d{1,3}).*class="spy2">:</font>(\d{1,5})', str(soup))
-        proxy_ip_port = proxy_regex[1] + ':' + proxy_regex[2]
-        proxy_list.append(proxy_ip_port)
-    print('Scraping spys.one successful')
+    try:
+        driver.get('http://spys.one/free-proxy-list/SK/')
+    except:
+        print('spys.one not available')
+    else:
+        select_proxy_type = Select(driver.find_element_by_id('xf1'))
+        select_proxy_type.select_by_value('4')  # high anonymous proxy
+        wait()
+        select_ssl = Select(driver.find_element_by_id('xf2'))
+        select_ssl.select_by_value('1') # https
+        wait()
+        select_http = Select(driver.find_element_by_id('xf5'))
+        select_http.select_by_value('1') 
+        
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        
+        for tr in soup.find_all('tr', {'class':['spy1x', 'spy1xx']})[2:]:
+            soup = tr.td.find_all('font')[1]
+            proxy_regex = re.search('class="spy14">(\d{1,3}\.\d{1,3}\.\d{1,3}).*class="spy2">:</font>(\d{1,5})', str(soup))
+            proxy_ip_port = proxy_regex[1] + ':' + proxy_regex[2]
+            proxy_list.append(proxy_ip_port)
+        print('Scraping spys.one successful')
     
     proxy_list = list(set((proxy_list)))
     driver.close()
@@ -369,4 +426,5 @@ if __name__ == '__main__':
     
     browser_list = scrape_useragents()
     proxy_list = scrape_proxies()
+    proxy_pool = proxyPool(proxy_list, 10, 0.4)
     links = scrape_topreality_links(region = 'trnavsky kraj', pages_to_scrape = 3)
