@@ -366,12 +366,19 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
     time.sleep(2)
     
     if region != None:
-        select_lokalita = driver.find_element_by_id('token-input-n_srch_obec')
+        #select_lokalita = driver.find_element_by_id('n_srch_obec_suggest')#driver.find_element_by_id('token-input-n_srch_obec')
+        select_lokalita = driver.find_element_by_xpath("//div[@id='n_srch_obec_suggest']/div[@class='ms-sel-ctn']/input[@placeholder='Okres, obec, ulica']")
         select_lokalita.click()
+        time.sleep(1)
         select_lokalita.send_keys(region)
         time.sleep(2)
-        select_lokalita2 = driver.find_element_by_xpath("//div[@class='token-input-dropdown-topreality']//li[1]")
-        select_lokalita2.click()
+        #select_lokalita2 = driver.find_element_by_xpath("//div[@class='token-input-dropdown-topreality']//li[1]")
+        select_lokalita2 = driver.find_element_by_xpath("//div[@class='ms-res-ctn dropdown-menu']")
+        hover = ActionChains(driver).move_to_element(select_lokalita2)
+        hover.perform()
+        time.sleep(1)
+        select_lokalita3 = driver.find_element_by_xpath("//div[@class='ms-res-item ms-res-item-active']//li[1]")
+        select_lokalita3.click()
     # ---
     
     results = driver.find_element_by_xpath("//span[@id='foundresults']/strong")
