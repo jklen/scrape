@@ -7,15 +7,17 @@ Created on Thu Aug 16 09:25:07 2018
 
 import os
 import pymongo
-from myscraper import scrape_useragents, scrape_proxies, scrape_topreality_links, TopRealityAd
-from proxypool import proxy_pool_test, proxyPool
 
 working_dir = 'C:\\Users\\j.klen\\PythonProjects\\scrape' # read from file
 os.chdir(working_dir)
 
+from myscraper import scrape_useragents, scrape_proxies, scrape_topreality_links, TopRealityAd
+from proxypool import proxy_pool_test, proxyPool
+
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
 adcollection = scrapedb['ads']
+adcollection_rmetrics = scrapedb['rmetrics']
 
 # explore/exploit proxies
 
@@ -26,7 +28,6 @@ adcollection = scrapedb['ads']
 #   adapt wait() to proxies speed
 #   why some responses have higher time than specified timeout???
 
-#   track successful request time, number of attempts
 #   streaming plots, some dashboard
 #       histogram of all proxies response times within all bandits
 #       line chart with bandit means
@@ -36,7 +37,8 @@ adcollection = scrapedb['ads']
 #       number of successful, unsuccesfull, total requests overall
 #       mean successful response time overall, in some intervals
 #       
-
+#   shuffle links
+#   handle not found ad
 
 if __name__ == '__main__':
     
@@ -47,6 +49,7 @@ if __name__ == '__main__':
     links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 3)
     for link in links:
         ad = TopRealityAd(link, proxy_pool, browser_list)
-        ad.scrape_all()
+        ad.scrape_all(savepics = False)
         proxy_pool = ad.proxy_pool
         ad.writetodb(adcollection)
+        ad.writetodb_rmetrics(adcollection_rmetrics)

@@ -34,24 +34,37 @@ class TopRealityAd:
         self.mapcoord = {}
         self.proxy_pool = proxy_pool
         self.useragents_list = useragents_list
+        
+        self.time_success = []
+        self.attempts = []
+        self.waits = []
                 
         success = False
         attempts = 0
+        time_wait = []
+        r_time_start = time.time()
         
         while success == False:
-            wait()
+            time_wait.append(wait())
             proxy = self.proxy_pool.choose_proxy()
             useragent = random.choice(self.useragents_list)
             try:
                 response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
             except:
-                self.proxy_pool.update(proxy, 30)
                 attempts += 1
+                self.proxy_pool.update(proxy, 30)
             else:
+                attempts += 1
+                r_time_end = time.time()
+                self.time_success.append(r_time_end - r_time_start)
+                self.attempts.append(attempts)
+                self.waits.append(np.sum(time_wait))
+                
                 self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                 self.soup = BeautifulSoup(response.content, 'html.parser')
                 success = True
-        print('Top reality ad response successful, attempts: ' + str(attempts + 1))
+        
+        print('Top reality ad response successful, attempts: ' + str(attempts))
     
     def scrape_properties(self):        
         i = 0
@@ -80,13 +93,13 @@ class TopRealityAd:
             pass
     
     # put here check if picture is alrady downloaded
-    def scrape_gallerylinks(self, save = True): # set timeout to request
+    def scrape_gallerylinks(self, savepics = True): # set timeout to request
         self.gallerylinks.append('https://topreality.sk' + self.soup.find('div', {'class':'gallery'}).a['href'])
 
         for li in self.soup.find('div', {'class':'gallery'}).ul.find_all('li'):
             self.gallerylinks.append('https://topreality.sk/' + li.a['href'])
         print('Number of pictures: ' + str(len(self.gallerylinks)))
-        if save:
+        if savepics:
             if 'empty1' in self.properties:
                 ad_id = re.search('id(\d*)', self.properties['empty1'])[1]
             else:
@@ -99,19 +112,26 @@ class TopRealityAd:
                                     
             for i, pic_link in enumerate(self.gallerylinks):
                 success = False
-                attempts = 1
+                attempts = 0
+                time_wait = []
+                r_time_start = time.time()
                 while success == False:
-                    wait()
+                    time_wait.append(wait())
                     proxy = self.proxy_pool.choose_proxy()
                     useragent = random.choice(self.useragents_list)
                     try:
                         response = requests.get(pic_link, stream = True, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
                         
                     except:
-                        self.proxy_pool.update(proxy, 30)
                         attempts += 1
+                        self.proxy_pool.update(proxy, 30)
                         #pass
                     else:
+                        attempts += 1
+                        r_time_end = time.time()
+                        self.time_success.append(r_time_end - r_time_start)
+                        self.attempts.append(attempts)
+                        self.waits.append(np.sum(time_wait))
                         self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                         with open(gallery_dir + '/' + 'img' + str(i) + '.jpg', 'wb') as out_file:
                             try:
@@ -121,6 +141,7 @@ class TopRealityAd:
                             else:
                                 print('Picture %d saved successfuly, attempts: %d' %(i + 1, attempts))
                                 success = True
+                
     
     def scrape_seller(self):        
         try:
@@ -144,7 +165,13 @@ class TopRealityAd:
             
     def correct_values(self):
         
-        self.properties['Cena'] = float(0) if self.properties['Cena'].strip() == 'cena dohodou' else float(self.properties['Cena'].split(',')[0].replace(' ', ''))
+        if 'Cena' in self.properties:
+            self.properties['Cena'] = float(0) if self.properties['Cena'].strip() == 'cena dohodou' else float(self.properties['Cena'].split(',')[0].replace(' ', ''))
+        elif 'Cena vrátane provízie' in self.properties:
+            self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
+        elif 'Cena bez provízie'in self.properties:
+            self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
+
         if 'Hypotéka' in self.properties:
             self.properties['Hypotéka'] = float(self.properties['Hypotéka'].split(' ')[1])
         if 'Poschodie' in self.properties:
@@ -164,6 +191,13 @@ class TopRealityAd:
         
         # put all info into one dictionary
         
+        try:
+            self.gallery_dir
+        except:
+            gal_dir = None
+        else:
+            gal_dir = os.getcwd().replace('\\' ,'/') + '/' + self.gallery_dir
+        
         self.ad = {'properties':self.properties,
               'pictureslinks':self.gallerylinks,
               'text':self.text,
@@ -171,20 +205,25 @@ class TopRealityAd:
               'seller':self.seller,
               'energycert':self.energycert,
               'mapcoord':self.mapcoord,
-              'gallerydir':os.getcwd().replace('\\' ,'/') + '/' + self.gallery_dir}
+              'gallerydir':gal_dir}
     
-    def scrape_all(self):
+    def scrape_all(self, savepics = True):
         self.scrape_properties()
         self.scrape_text()
         self.scrape_tags()
         self.scrape_energycert()
-        self.scrape_gallerylinks()
+        self.scrape_gallerylinks(savepics)
         self.scrape_seller()
         self.scrape_mapcoords()
         self.correct_values()
     
     def writetodb(self, dbcollection):
         x = dbcollection.insert_one(self.ad)
+    
+    def writetodb_rmetrics(self, dbcollection):
+        time_now = datetime.datetime.now()
+        to_write = [{'timestamp':time_now, 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i]} for i in range(len(self.time_success))]
+        x = dbcollection.insert_many(to_write)
 
 def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):
     
@@ -287,6 +326,7 @@ def wait(minval = 0.5, maxval = 20, meanval = 2.5, std = 2.7):
     value = dist.rvs()
     print('Waiting ' + str(value) + ' s.')
     time.sleep(value)
+    return(value)
 
 def scrape_topreality_links(region = None, pages_to_scrape = 5):
     
