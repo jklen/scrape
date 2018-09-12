@@ -34,6 +34,7 @@ class TopRealityAd:
         self.mapcoord = {}
         self.proxy_pool = proxy_pool
         self.useragents_list = useragents_list
+        self.active = True # when ad url gets redirected, ad is unavailable/deleted
         
         self.time_success = []
         self.attempts = []
@@ -49,7 +50,11 @@ class TopRealityAd:
             proxy = self.proxy_pool.choose_proxy()
             useragent = random.choice(self.useragents_list)
             try:
-                response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
+                response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30, allow_redirects = False)
+                if response.status_code == 301:
+                    self.active = False
+                    print('Ad was probably deleted.')
+                    break
             except:
                 attempts += 1
                 self.proxy_pool.update(proxy, 30)
@@ -62,9 +67,8 @@ class TopRealityAd:
                 
                 self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                 self.soup = BeautifulSoup(response.content, 'html.parser')
-                success = True
-        
-        print('Top reality ad response successful, attempts: ' + str(attempts))
+                success = True       
+                print('Top reality ad response successful, attempts: ' + str(attempts))
     
     def scrape_properties(self):        
         i = 0
@@ -169,8 +173,10 @@ class TopRealityAd:
             self.properties['Cena'] = float(0) if self.properties['Cena'].strip() == 'cena dohodou' else float(self.properties['Cena'].split(',')[0].replace(' ', ''))
         elif 'Cena vrátane provízie' in self.properties:
             self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
+            del(self.properties['Cena vrátane provízie'])
         elif 'Cena bez provízie'in self.properties:
             self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
+            del(self.properties['Cena bez provízie'])
 
         if 'Hypotéka' in self.properties:
             self.properties['Hypotéka'] = float(self.properties['Hypotéka'].split(' ')[1])
@@ -208,22 +214,25 @@ class TopRealityAd:
               'gallerydir':gal_dir}
     
     def scrape_all(self, savepics = True):
-        self.scrape_properties()
-        self.scrape_text()
-        self.scrape_tags()
-        self.scrape_energycert()
-        self.scrape_gallerylinks(savepics)
-        self.scrape_seller()
-        self.scrape_mapcoords()
-        self.correct_values()
+        if self.active:
+            self.scrape_properties()
+            self.scrape_text()
+            self.scrape_tags()
+            self.scrape_energycert()
+            self.scrape_gallerylinks(savepics)
+            self.scrape_seller()
+            self.scrape_mapcoords()
+            self.correct_values()
     
     def writetodb(self, dbcollection):
-        x = dbcollection.insert_one(self.ad)
+        if self.active:
+            x = dbcollection.insert_one(self.ad)
     
     def writetodb_rmetrics(self, dbcollection):
-        time_now = datetime.datetime.now()
-        to_write = [{'timestamp':time_now, 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i]} for i in range(len(self.time_success))]
-        x = dbcollection.insert_many(to_write)
+        if self.active:
+            time_now = datetime.datetime.now()
+            to_write = [{'timestamp':time_now, 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i]} for i in range(len(self.time_success))]
+            x = dbcollection.insert_many(to_write)
 
 def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):
     
@@ -406,6 +415,7 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
         print('Page ' + str(i) + '/' + str(pages - 1) + ' done')
         wait(minval = 1.5, maxval = 10, meanval = 2.5, std = 2)
     
+    random.shuffle(links)
     driver.close()
     
     return links

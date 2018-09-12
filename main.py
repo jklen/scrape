@@ -5,11 +5,7 @@ Created on Thu Aug 16 09:25:07 2018
 @author: j.klen
 """
 
-import os
 import pymongo
-
-working_dir = 'C:\\Users\\j.klen\\PythonProjects\\scrape' # read from file
-os.chdir(working_dir)
 
 from myscraper import scrape_useragents, scrape_proxies, scrape_topreality_links, TopRealityAd
 from proxypool import proxy_pool_test, proxyPool
@@ -36,9 +32,8 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       ratio successful request nr./all requests nr, overall, in some intervals
 #       number of successful, unsuccesfull, total requests overall
 #       mean successful response time overall, in some intervals
-#       
-#   shuffle links
-#   handle not found ad
+
+#   add timestamp when ad was added to db
 
 if __name__ == '__main__':
     
