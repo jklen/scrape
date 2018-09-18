@@ -20,9 +20,10 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #   do not sample worst proxies
 #   change epsilon-greedy, weighted exploration
 #   thompson sampling
-#   measure proxies position channge, around 40% of proxies are not usable, so when change is minimal, explore these minimal
 #   adapt wait() to proxies speed
 #   why some responses have higher time than specified timeout???
+
+#   basic data profiling
 
 #   streaming plots, some dashboard
 #       histogram of all proxies response times within all bandits
@@ -33,8 +34,6 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       number of successful, unsuccesfull, total requests overall
 #       mean successful response time overall, in some intervals
 
-#   add timestamp when ad was added to db
-
 if __name__ == '__main__':
     
     browser_list = scrape_useragents()
@@ -42,7 +41,8 @@ if __name__ == '__main__':
     proxy_pool = proxyPool(proxy_list, 10, 0.4)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
     links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 3)
-    for link in links:
+    for i, link in enumerate(links):
+        print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
         ad.scrape_all(savepics = False)
         proxy_pool = ad.proxy_pool

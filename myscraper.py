@@ -168,14 +168,27 @@ class TopRealityAd:
             pass
             
     def correct_values(self):
-        
+                
         if 'Cena' in self.properties:
-            self.properties['Cena'] = float(0) if self.properties['Cena'].strip() == 'cena dohodou' else float(self.properties['Cena'].split(',')[0].replace(' ', ''))
+            if self.properties['Cena'].strip() == 'cena dohodou':
+                self.properties['Cena dohodou'] = True
+            else:
+                self.properties['Cena dohodou'] = False
+                self.properties['Cena'] = float(self.properties['Cena'].split(',')[0].replace(' ', ''))
+                self.properties['Provízia v cene'] = 'Nezname'
+                self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+
         elif 'Cena vrátane provízie' in self.properties:
+            self.properties['Cena dohodou'] = False
             self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
+            self.properties['Provízia v cene'] = 'Ano'
+            self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
             del(self.properties['Cena vrátane provízie'])
         elif 'Cena bez provízie'in self.properties:
+            self.properties['Cena dohodou'] = False
             self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
+            self.properties['Provízia v cene'] = 'Nie'
+            self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
             del(self.properties['Cena bez provízie'])
 
         if 'Hypotéka' in self.properties:
@@ -183,7 +196,6 @@ class TopRealityAd:
         if 'Poschodie' in self.properties:
             self.properties['Počet poschodí'] = int(self.properties['Poschodie'].split('/')[1].strip())
             self.properties['Poschodie'] = int(self.properties['Poschodie'].split('/')[0].strip())
-        self.properties['Cena za meter'] = float(0) if self.properties['Cena'] == 0 else float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
         self.properties['Úžitková plocha v m2'] = float(self.properties['Úžitková plocha'].split(' ')[0])
         del(self.properties['Úžitková plocha'])
         self.properties['Link s id'] = self.properties.pop('empty1') if  'empty1' in self.properties else self.properties.pop('empty0')
@@ -204,14 +216,15 @@ class TopRealityAd:
         else:
             gal_dir = os.getcwd().replace('\\' ,'/') + '/' + self.gallery_dir
         
-        self.ad = {'properties':self.properties,
-              'pictureslinks':self.gallerylinks,
-              'text':self.text,
-              'tags':self.tags,
-              'seller':self.seller,
-              'energycert':self.energycert,
-              'mapcoord':self.mapcoord,
-              'gallerydir':gal_dir}
+        self.ad = {'scraped timestamp':datetime.datetime.now(),
+                   'properties':self.properties,
+                   'pictureslinks':self.gallerylinks,
+                   'text':self.text,
+                   'tags':self.tags,
+                   'seller':self.seller,
+                   'energycert':self.energycert,
+                   'mapcoord':self.mapcoord,
+                   'gallerydir':gal_dir}
     
     def scrape_all(self, savepics = True):
         if self.active:
@@ -226,12 +239,13 @@ class TopRealityAd:
     
     def writetodb(self, dbcollection):
         if self.active:
+            self.ad['added to db timestamp'] = datetime.datetime.now()
             x = dbcollection.insert_one(self.ad)
     
     def writetodb_rmetrics(self, dbcollection):
         if self.active:
             time_now = datetime.datetime.now()
-            to_write = [{'timestamp':time_now, 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i]} for i in range(len(self.time_success))]
+            to_write = [{'timestamp':time_now, 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i], 'pure time':self.time_success[i] - self.waits[i]} for i in range(len(self.time_success))]
             x = dbcollection.insert_many(to_write)
 
 def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):
