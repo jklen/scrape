@@ -32,7 +32,16 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       mean change of proxies position within pool, overall, in some intervals
 #       ratio successful request nr./all requests nr, overall, in some intervals
 #       number of successful, unsuccesfull, total requests overall
+#       number of links and pictures successfuly scraped
+#       % of not usable proxies
 #       mean successful response time overall, in some intervals
+#       histogram of number of attempts per request
+
+
+# wait and pure time as stacked histogram
+# density function
+
+# deleted link is not redirected anymore, repair
 
 if __name__ == '__main__':
     
