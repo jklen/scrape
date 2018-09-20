@@ -51,7 +51,7 @@ class TopRealityAd:
             useragent = random.choice(self.useragents_list)
             try:
                 response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30, allow_redirects = False)
-                if response.status_code == 301:
+                if BeautifulSoup(response.content, 'html.parser').find('div', {'class':'properties'}) is None:
                     self.active = False
                     print('Ad was probably deleted.')
                     break
@@ -70,7 +70,7 @@ class TopRealityAd:
                 success = True       
                 print('Top reality ad response successful, attempts: ' + str(attempts))
     
-    def scrape_properties(self):        
+    def scrape_properties(self):
         i = 0
 
         for li in self.soup.find('div', {'class':'properties'}).ul.find_all('li'):

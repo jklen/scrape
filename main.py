@@ -41,8 +41,6 @@ adcollection_rmetrics = scrapedb['rmetrics']
 # wait and pure time as stacked histogram
 # density function
 
-# deleted link is not redirected anymore, repair
-
 if __name__ == '__main__':
     
     browser_list = scrape_useragents()
