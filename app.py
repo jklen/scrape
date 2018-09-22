@@ -13,6 +13,7 @@ import plotly.figure_factory as ff
 from dash.dependencies import Input, Output
 import pymongo
 import numpy as np
+from collections import Counter
 
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
@@ -22,7 +23,12 @@ app = dash.Dash(__name__)
 
 app.layout = html.Div([
     html.Div([
-        dcc.Graph(id='main_histogram')
+        html.Div([
+                dcc.Graph(id='main_histogram')
+        ], className = 'six columns'),
+        html.Div([
+                dcc.Graph(id = 'histogram_attempts')
+        ], className = 'six columns')
     ], className = 'row'),
         
     html.Div([
@@ -53,7 +59,7 @@ def gen_histogram1(interval):
     values = [r['time success'] for r in adcollection_rmetrics.find()]
     avg_val = np.mean(values)
     median_val = np.median(values)
-    bin_val = np.histogram(values, bins = 30)
+    bin_val = np.histogram(values, bins = 20)
     
     trace = Bar(x = bin_val[1],
                 y = bin_val[0],
@@ -61,6 +67,11 @@ def gen_histogram1(interval):
                 opacity = 0.75)
 
     layout = Layout(
+            title = 'Time per link histogram',
+            xaxis = dict(
+                    title = 'Time [s]'),
+            yaxis = dict(
+                    title = 'Count'),
             shapes= [dict(type =  'line',
                      line = Line(dash = 'dash',
                                    width = 5,
@@ -94,6 +105,29 @@ def gen_histogram1(interval):
                          showarrow = False)])
     return Figure(data = [trace], layout = layout)
 
+@app.callback(Output('histogram_attempts', 'figure'),
+              [Input('interval-component', 'n_intervals')])
+def gen_histogram_attempts(interval):
+    counted_vals = Counter([r['attempts'] for r in adcollection_rmetrics.find()])
+    keys = list(counted_vals.keys())
+    vals = [counted_vals[i] for i in counted_vals]
+    
+    trace = Bar(
+            x = keys,
+            y = vals,
+            opacity = 0.75,
+            marker = dict(
+                    color = '#92b4f2'))
+    
+    layout = Layout(bargap = 0.2,
+                    title = 'Nr. of attempts per link',
+                    xaxis = dict(
+                            type = 'category',
+                            title = 'Nr. of attempts'),
+                    yaxis = dict(
+                            title = 'Count'))
+    return Figure(data = [trace], layout = layout)
+
 @app.callback(Output('histogram_pure_wait', 'figure'),
               [Input('interval-component', 'n_intervals')])
 def gen_histogram2(interval):
@@ -106,16 +140,25 @@ def gen_histogram2(interval):
             name = 'pure time',
             xbins = dict(start = 0,
                          end = np.max([np.max(values1), np.max(values2)]),
-                         size = int(np.max([np.max(values1), np.max(values2)])/30)))
+                         size = int(np.max([np.max(values1), np.max(values2)])/30)),
+            marker = dict(
+                    color = '#92b4f2'))
     trace2 = Histogram(
             x = values2,
             opacity = 0.75,
             name = 'wait time',
             xbins = dict(start = 0,
                          end = np.max([np.max(values1), np.max(values2)]),
-                         size = int(np.max([np.max(values1), np.max(values2)])/30)))
+                         size = int(np.max([np.max(values1), np.max(values2)])/30)),
+            marker = dict(
+                    color = '#ffb653'))
     layout = Layout(barmode = 'overlay',
-                    legend = Legend(orientation = 'h'))
+                    title = 'Pure time vs. wait time per link histogram',
+                    showlegend = False,
+                    xaxis = dict(
+                            title = 'Time [s]'),
+                    yaxis = dict(
+                            title = 'Count'))
     
     return Figure(data = [trace1, trace2], layout = layout)
 
@@ -127,8 +170,8 @@ def gen_densityplot(interval):
     
     labels =['pure time', 'wait time']
         
-    fig = ff.create_distplot([values1, values2], labels, show_hist = False)
-    fig['layout'].update(legend = Legend(orientation = 'h'))
+    fig = ff.create_distplot([values1, values2], labels, show_hist = False, colors = ['#92b4f2', '#ffb653'])
+    fig['layout'].update(legend = Legend(orientation = 'h'), title = 'Pure time vs. wait time per link distplot')
     
     return fig
 
@@ -138,12 +181,11 @@ def gen_piechart(interval):
     labels = ['pure time', 'wait time']
     values = [np.sum([r['pure time'] for r in adcollection_rmetrics.find()]), np.sum([r['waits'] for r in adcollection_rmetrics.find()])]
     
-    trace = Pie(labels = labels, values = values)
+    trace = Pie(labels = labels, values = values, marker = dict(colors = ['#92b4f2', '#ffb653']))
     
     layout = Layout(
-            legend = Legend(
-                    orientation = 'h'
-            )
+            showlegend = False,
+            title = 'Overall wait time vs. pure time'
             
     )
     

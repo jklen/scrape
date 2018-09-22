@@ -35,11 +35,9 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       number of links and pictures successfuly scraped
 #       % of not usable proxies
 #       mean successful response time overall, in some intervals
-#       histogram of number of attempts per request
-
-
-# wait and pure time as stacked histogram
-# density function
+#       ratio of pure time/wait time in time
+#       average nr. of proxies per request
+#       overall/time window
 
 if __name__ == '__main__':
     
