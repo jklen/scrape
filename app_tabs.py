@@ -14,6 +14,7 @@ from dash.dependencies import Input, Output, Event
 import pymongo
 import numpy as np
 from collections import Counter
+import pandas as pd
 
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
@@ -22,52 +23,140 @@ adcollection_rmetrics = scrapedb['rmetrics']
 app = dash.Dash(__name__)
 
 app.layout = html.Div([
-        html.Div([
-            dcc.Tabs(id = 'tabs', value = 'requests', children = [
-                    dcc.Tab(label = 'Requests', value = 'requests', children = [
-                        dcc.Tabs(id = 'tabs_requests',  children = [
-                                dcc.Tab(label = 'Overall', value = 'overall'),
-                                dcc.Tab(label = 'Time window', value = 'time_window')
-                        ])        
-                    ]),
-                    dcc.Tab(label = 'Proxies', value = 'proxies')
-            ]),
-            html.Div(id = 'tabs_content'),
-            dcc.Interval(
-                id='interval-component',
-                interval=1*5000, # in milliseconds
-                n_intervals=0
-            )
-        ])
+    dcc.Tabs(id="tabs", children=[
+        dcc.Tab(label='Links overall', children=[
+            html.Div([html.Div(id = 'overall_content'), 
+                    dcc.Interval(
+                            id = 'tab1_interval',
+                            interval = 2000,
+                            n_intervals = 0)])
+        ]),
+        dcc.Tab(label='Links time window', children=[
+            html.Div([
+                    html.Div([
+                            html.H5('Times refreshed:')
+                    ], className = 'four columns'),
+                    html.Div([
+                            html.H5('Moving average:')
+                    ], className = 'four columns')
+            ], className = 'row'),
+            html.Div([
+                html.Div([
+                        html.Div(id = 'times_refreshed')
+                ], className = 'two columns'),
+                html.Div([
+                    html.Button(children = 'Stop refresh', id = 'interval_button')        
+                        
+                ], className = 'two columns'),
+                html.Div([
+                    dcc.Slider(
+                            id = 'slider_MA_tab2',
+                            min = 2,
+                            max = 10,
+                            value = 5,
+                            step = 1,
+                            marks = {i:str(i) for i in range(2, 11)})
+                ], className = 'four columns')
+                
+                
+            ], className = 'row'),
+            html.Div([
+                        html.Div(id = 'time_window_content'),
+                        dcc.Interval(
+                                id = 'tab2_interval',
+                                interval = 2000,
+                                n_intervals = 0)
+                ], className = 'row')
+        ]),
+        dcc.Tab(label='Tab three', children=[
+            html.Div(id = 'tab3_content')
+        ]),
     ])
-            
-app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
+])
 
-@app.callback(Output('tabs_content', 'children'), [Input('tabs', 'value'), Input('tabs_requests', 'value'), Input('interval-component', 'n_intervals')])
-def display_content(selected_tab, selected_req_tab, interval):
-    if selected_tab == 'requests' and selected_req_tab == 'overall':
-        to_return = html.Div([
+#app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
+app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+@app.callback(Output('interval_button', 'children'), [Input('interval_button', 'n_clicks')])
+def update_button(clicks):
+    #if clicks != None:
+        if clicks % 2 == 1:
+            return 'Start refresh'
+        elif clicks % 2 == 0:
+            return 'Stop refresh'
+
+@app.callback(Output('tab2_interval', 'interval'), [Input('interval_button', 'n_clicks')])
+def stop_interval(clicks):
+    #if clicks != None:
+        if clicks % 2 == 1:
+            return 600000
+        elif clicks % 2 == 0:
+            return 2000
+
+@app.callback(Output('overall_content', 'children'), [Input('tabs', 'value'), Input('tab1_interval', 'n_intervals')])
+def content_links_overall(selected_tab, interval):
+    to_return = html.Div([
+                    html.Div([
                         html.Div([
-                            html.Div([
-                                    dcc.Graph(id='histogram_time', figure=gen_histogram1())
-                            ], className = 'six columns'),
-                            html.Div([
-                                    dcc.Graph(id = 'histogram_attempts', figure = gen_histogram_attempts())
-                            ], className = 'six columns')
-                        ], className = 'row'),
+                                html.H1('h1 tag ' + str(interval)),
+                                dcc.Graph(id='histogram_time', figure=gen_histogram1())
+                        ], className = 'six columns'),
                         html.Div([
-                            html.Div([
-                                    dcc.Graph(id = 'histogram_pure_wait', figure = gen_histogram2())                
-                            ], className = 'four columns'),
-                            html.Div([
-                                    dcc.Graph(id = 'density_pure_wait', figure = gen_distplot())                
-                            ], className = 'four columns'),        
-                            html.Div([
-                                    dcc.Graph(id = 'pie_chart', figure = gen_piechart())                
-                            ], className = 'four columns')            
-                        ], className = 'row')
-                    ])
-        return to_return
+                                dcc.Graph(id = 'histogram_attempts', figure = gen_histogram_attempts())
+                        ], className = 'six columns')
+                    ], className = 'row'),
+                    html.Div([
+                        html.Div([
+                                dcc.Graph(id = 'histogram_pure_wait', figure = gen_histogram2())                
+                        ], className = 'four columns'),
+                        html.Div([
+                                dcc.Graph(id = 'density_pure_wait', figure = gen_distplot())                
+                        ], className = 'four columns'),        
+                        html.Div([
+                                dcc.Graph(id = 'pie_chart', figure = gen_piechart())                
+                        ], className = 'four columns')            
+                    ], className = 'row')
+                ])
+        
+    return to_return
+
+@app.callback(Output('times_refreshed', 'children'), [Input('tab2_interval', 'n_intervals')])
+def times_refreshed(interval):
+    return html.H5(interval)
+
+@app.callback(Output('time_window_content', 'children'), [Input('tabs', 'value'), Input('tab2_interval', 'n_intervals'), Input('slider_MA_tab2', 'value'), Input('interval_button', 'n_clicks')])
+def content_links_time_window(selected_tab, interval, slider, n_clicks):
+    to_return = html.Div([
+                    dcc.Graph(id = 'line_time', figure = gen_line1(slider))
+                ])
+         
+    
+    return to_return
+
+    
+def gen_line1(slider):
+    x = [r['timestamp'] for r in adcollection_rmetrics.find()]
+    x = [i for i in range(0, len(x) + 1)]
+    y = [r['time success'] for r in adcollection_rmetrics.find()]
+    y_MA = pd.Series(y).rolling(slider).mean()    
+    
+    trace = Scatter(x = x,
+                    y = y,
+                    name = 'Regular')
+    trace_MA = Scatter(x = x,
+                       y = y_MA,
+                       marker = {'color':'#fb2e01'},
+                        name = str(slider) + ' steps MA')
+    
+    layout = dict(
+            title = 'Time to process links in time',
+            xaxis = dict(title = 'Link nr.',
+                         rangeslider=dict(visible = True)),
+            yaxis = dict(title = 'Time [s]')
+    )
+    
+    return Figure(data = [trace, trace_MA], layout = layout)
+    
 
 def gen_histogram1():
         
@@ -117,6 +206,10 @@ def gen_histogram1():
                     dict(x = median_val,
                          y = np.max(bin_val[0] - 0.1 * np.max(bin_val[0])),
                          text = 'Median = {:,.2f}'.format(median_val),
+                         showarrow = False),
+                    dict(x = bin_val[1][-4],
+                         y = np.max(bin_val[0]),
+                         text = 'Total count = {:}'.format(len(values)),
                          showarrow = False)])
     return Figure(data = [trace], layout = layout)
 

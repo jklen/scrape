@@ -39,6 +39,8 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       overall/time window
 #       map with proxies stats
 
+#   overall in time vs. time window (same as interval, moving average/median)
+
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
 #   nr. of pictures scraped (saved) if any
@@ -51,7 +53,7 @@ if __name__ == '__main__':
     proxy_list = scrape_proxies()
     proxy_pool = proxyPool(proxy_list, 10, 0.4)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 3)
+    links = scrape_topreality_links(region = 'kosicky kraj', pages_to_scrape = 3)
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
