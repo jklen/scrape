@@ -15,6 +15,7 @@ import pymongo
 import numpy as np
 from collections import Counter
 import pandas as pd
+import datetime
 
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
@@ -38,6 +39,9 @@ app.layout = html.Div([
                     ], className = 'four columns'),
                     html.Div([
                             html.H5('Moving average:')
+                    ], className = 'four columns'),
+                    html.Div([
+                            html.H5('X axis')
                     ], className = 'four columns')
             ], className = 'row'),
             html.Div([
@@ -56,17 +60,30 @@ app.layout = html.Div([
                             value = 5,
                             step = 1,
                             marks = {i:str(i) for i in range(2, 11)})
+                ], className = 'four columns'),
+                html.Div([
+                    dcc.RadioItems(id = 'xaxis',
+                            options = [{'label': 'Number', 'value':'nr'},
+                                              {'label': 'Date', 'value':'date'}
+                                              ],
+                            value = 'date',
+                            labelStyle = {'display':'inline-block'})
                 ], className = 'four columns')
                 
                 
             ], className = 'row'),
             html.Div([
-                        html.Div(id = 'time_window_content'),
-                        dcc.Interval(
-                                id = 'tab2_interval',
-                                interval = 2000,
-                                n_intervals = 0)
-                ], className = 'row')
+                    html.Div([
+                        html.Div(id = 'time_window_content')
+                    ], className = 'six columns'),
+                    html.Div([
+                        html.Div(id = 'time_area_chart')
+                    ], className = 'six columns'),
+                    dcc.Interval(
+                            id = 'tab2_interval',
+                            interval = 2000,
+                            n_intervals = 0)
+            ], className = 'row')
         ]),
         dcc.Tab(label='Tab three', children=[
             html.Div(id = 'tab3_content')
@@ -124,19 +141,37 @@ def content_links_overall(selected_tab, interval):
 def times_refreshed(interval):
     return html.H5(interval)
 
-@app.callback(Output('time_window_content', 'children'), [Input('tabs', 'value'), Input('tab2_interval', 'n_intervals'), Input('slider_MA_tab2', 'value'), Input('interval_button', 'n_clicks')])
-def content_links_time_window(selected_tab, interval, slider, n_clicks):
+@app.callback(Output('time_window_content', 'children'), [Input('tabs', 'value'), 
+              Input('tab2_interval', 'n_intervals'), 
+              Input('slider_MA_tab2', 'value'), 
+              Input('interval_button', 'n_clicks'),
+              Input('xaxis', 'value')])
+def content_links_time_window(selected_tab, interval, slider, n_clicks, xaxis):
     to_return = html.Div([
-                    dcc.Graph(id = 'line_time', figure = gen_line1(slider))
+                    dcc.Graph(id = 'line_time', figure = gen_line1(slider, xaxis))
                 ])
          
     
     return to_return
 
+@app.callback(Output('time_area_chart', 'children'),
+              [Input('tabs', 'value'),
+               Input('tab2_interval', 'n_intervals'),
+               Input('interval_button', 'n_clicks'),
+               Input('xaxis', 'value')])
+def content_links_area_chart(selected_tab, interval, n_clicks, xaxis):
+    to_return = html.Div([
+                    dcc.Graph(id = 'area_time', figure = gen_area1(xaxis))
+                ])
+         
     
-def gen_line1(slider):
+    return to_return
+    
+def gen_line1(slider, xtype):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
-    x = [i for i in range(0, len(x) + 1)]
+    x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
+    if xtype == 'nr':
+        x = [i for i in range(0, len(x) + 1)]
     y = [r['time success'] for r in adcollection_rmetrics.find()]
     y_MA = pd.Series(y).rolling(slider).mean()    
     
@@ -149,14 +184,88 @@ def gen_line1(slider):
                         name = str(slider) + ' steps MA')
     
     layout = dict(
-            title = 'Time to process links in time',
+            title = 'Time to process links',
             xaxis = dict(title = 'Link nr.',
                          rangeslider=dict(visible = True)),
             yaxis = dict(title = 'Time [s]')
     )
+            
+    if xtype == 'date':
+        layout['xaxis']['rangeselector'] = dict(
+                buttons = list([dict(count = 1,
+                                     label = '1d',
+                                     step = 'day',
+                                     stepmode = 'backward'),
+                                dict(count = 1,
+                                     label = '1h',
+                                     step = 'hour',
+                                     stepmode = 'backward'),
+                                dict(count = 30,
+                                     label = '30m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(count = 10,
+                                     label = '10m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(step = 'all')
+                        ]))
+        layout['xaxis']['range'] = x_range
+    elif xtype == 'nr':
+        layout['xaxis']['range'] = [x[0], x[-1]]
     
     return Figure(data = [trace, trace_MA], layout = layout)
+
+def gen_area1(xtype):
+    x = [r['timestamp'] for r in adcollection_rmetrics.find()]
+    x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
+    if xtype == 'nr':
+        x = [i for i in range(0, len(x) + 1)]
+        x_range = [x[0], x[-1]]
     
+    trace1 = Scatter(
+            x = x,
+            y = [r['pure time'] for r in adcollection_rmetrics.find()],
+            fill = 'tozeroy',
+            mode = 'none',
+            name = 'pure time')
+    
+    trace2 = Scatter(
+            x = x,
+            y = [r['waits'] for r in adcollection_rmetrics.find()],
+            fill = 'tonexty',
+            mode = 'none',
+            name = 'wait time')
+    
+    layout = dict(
+            title = 'Pure vs. wait time, in time',
+            xaxis = dict(title = 'Link nr.',
+                         range = x_range),
+            yaxis = dict(title = 'Time [s]'))
+    
+    if xtype == 'date':
+        layout['xaxis']['rangeselector'] = dict(
+                buttons = list([dict(count = 1,
+                                     label = '1d',
+                                     step = 'day',
+                                     stepmode = 'backward'),
+                                dict(count = 1,
+                                     label = '1h',
+                                     step = 'hour',
+                                     stepmode = 'backward'),
+                                dict(count = 30,
+                                     label = '30m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(count = 10,
+                                     label = '10m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(step = 'all')
+                        ]))
+    
+    return Figure(data = [trace1, trace2], layout = layout)
+
 
 def gen_histogram1():
         

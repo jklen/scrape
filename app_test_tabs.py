@@ -1,7 +1,9 @@
 import dash
 import dash_html_components as html
 import dash_core_components as dcc
-from plotly.graph_objs import Bar, Figure
+from plotly.graph_objs import Bar, Figure, Scatter
+import pandas as pd
+import datetime
 
 from dash.dependencies import Input, Output, State, Event
 
@@ -33,10 +35,39 @@ app.layout = html.Div([
             ])
         ]),
         dcc.Tab(label='Tab three', children=[
+            dcc.RadioItems(id = 'xaxis',
+                            options = [{'label': 'Number', 'value':'nr'},
+                                              {'label': 'Date', 'value':'date'}
+                                              ],
+                            value = 'date',
+                            labelStyle = {'display':'inline-block'}),
             html.Div(id = 'tab3_content')
         ]),
     ])
 ])
+            
+@app.callback(Output('tab3_content', 'children'),
+              [Input('tabs', 'value'),
+               Input('xaxis', 'value')])
+def gen_ch3(tab, xtype):
+    if xtype == 'nr':
+        x = [i for i in range(0,100)]
+        y = [i for i in range(0,100)]
+        x_range = [x[0], x[-1]]
+    elif xtype == 'date':
+        x = pd.date_range(pd.datetime.today(), periods = 100).tolist()
+        x = [i.to_pydatetime() for i in x]
+        y = [i for i in range(0,100)]
+        x_range = [x[-1] - datetime.timedelta(days = 10), x[-1]]
+    
+    trace = Scatter(x = x,
+                    y = y)
+    layout = dict(xaxis = dict(range = x_range))
+    
+    to_return = html.Div([
+            dcc.Graph(id = 'graph_tab3', figure = Figure(data = [trace], layout = layout))])
+    
+    return to_return
 
 @app.callback(Output('tab1_content', 'children'), [Input('tabs', 'value'), Input('tab1_interval', 'n_intervals')])
 def gen_tab1(tab, interval):
@@ -56,7 +87,7 @@ def gen_tab2(tab, slider, interval):
                                                               y = [slider,interval,1])]))       
     ])
     return to_return
-
+'''
 @app.callback(Output('tab3_content', 'children'), [Input('tabs', 'value')])
 def gen_tab3(tab):
     to_return = html.Div([
@@ -64,6 +95,6 @@ def gen_tab3(tab):
                                                               y = [3,3,3])]))       
     ])
     return to_return
-
+'''
 if __name__ == '__main__':
     app.run_server(debug=True)

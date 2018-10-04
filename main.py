@@ -40,6 +40,7 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       map with proxies stats
 
 #   overall in time vs. time window (same as interval, moving average/median)
+#   same range in area chart as in line chart
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
