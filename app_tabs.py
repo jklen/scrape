@@ -10,18 +10,26 @@ import dash_core_components as dcc
 import dash_html_components as html
 from plotly.graph_objs import Bar, Figure, Scatter, Line, Marker, Layout, Histogram, Pie, Legend
 import plotly.figure_factory as ff
-from dash.dependencies import Input, Output, Event
+from dash.dependencies import Input, Output, Event, State
 import pymongo
 import numpy as np
 from collections import Counter
 import pandas as pd
 import datetime
+import json
 
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
 adcollection_rmetrics = scrapedb['rmetrics']
 
 app = dash.Dash(__name__)
+#app.config['suppress_callback_exceptions'] = True
+styles = {
+    'pre': {
+        'border': 'thin lightgrey solid',
+        'overflowX': 'scroll'
+    }
+}
 
 app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
@@ -74,15 +82,25 @@ app.layout = html.Div([
             ], className = 'row'),
             html.Div([
                     html.Div([
-                        html.Div(id = 'time_window_content')
+                        dcc.Graph(id = 'line_time')
                     ], className = 'six columns'),
                     html.Div([
-                        html.Div(id = 'time_area_chart')
+                        dcc.Graph(id = 'area_time')
                     ], className = 'six columns'),
                     dcc.Interval(
                             id = 'tab2_interval',
                             interval = 2000,
                             n_intervals = 0)
+            ], className = 'row'),
+            html.Div([
+                    html.Div([
+                        html.Pre(id = 'relayed data', style = styles['pre'])
+                    ], className = 'six columns'),
+                    html.Div([
+                        html.Pre(id = 'relayed data status', style = styles['pre'])        
+                    ], className = 'six columns')
+                    
+                    
             ], className = 'row')
         ]),
         dcc.Tab(label='Tab three', children=[
@@ -90,9 +108,20 @@ app.layout = html.Div([
         ]),
     ])
 ])
-
+                    
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+@app.callback(Output('relayed data status', 'children'),               
+                [Input('xaxis', 'value')],
+                [State('line_time', 'relayoutData')])
+def displaty_relay_data_state(radio, r):
+    return json.dumps(r, indent = 2)
+
+@app.callback(Output('relayed data', 'children'),
+              [Input('line_time', 'relayoutData')])
+def display_relay_data(r):
+    return json.dumps(r, indent = 2)
 
 @app.callback(Output('interval_button', 'children'), [Input('interval_button', 'n_clicks')])
 def update_button(clicks):
@@ -141,29 +170,24 @@ def content_links_overall(selected_tab, interval):
 def times_refreshed(interval):
     return html.H5(interval)
 
-@app.callback(Output('time_window_content', 'children'), [Input('tabs', 'value'), 
+@app.callback(Output('line_time', 'figure'), [Input('tabs', 'value'), 
               Input('tab2_interval', 'n_intervals'), 
               Input('slider_MA_tab2', 'value'), 
               Input('interval_button', 'n_clicks'),
               Input('xaxis', 'value')])
 def content_links_time_window(selected_tab, interval, slider, n_clicks, xaxis):
-    to_return = html.Div([
-                    dcc.Graph(id = 'line_time', figure = gen_line1(slider, xaxis))
-                ])
-         
+    to_return = gen_line1(slider, xaxis)
     
     return to_return
 
-@app.callback(Output('time_area_chart', 'children'),
+@app.callback(Output('area_time', 'figure'),
               [Input('tabs', 'value'),
                Input('tab2_interval', 'n_intervals'),
                Input('interval_button', 'n_clicks'),
-               Input('xaxis', 'value')])
-def content_links_area_chart(selected_tab, interval, n_clicks, xaxis):
-    to_return = html.Div([
-                    dcc.Graph(id = 'area_time', figure = gen_area1(xaxis))
-                ])
-         
+               Input('xaxis', 'value'),
+               Input('line_time', 'relayoutData')])
+def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay):
+    to_return = gen_area1(xaxis, relay)       
     
     return to_return
     
@@ -216,32 +240,68 @@ def gen_line1(slider, xtype):
     
     return Figure(data = [trace, trace_MA], layout = layout)
 
-def gen_area1(xtype):
+def gen_area1(xtype, relay):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
         x = [i for i in range(0, len(x) + 1)]
         x_range = [x[0], x[-1]]
+        
+    if 'xaxis.range[0]' in relay and 'xaxis.range[1]' in relay:
+        x_range = [relay['xaxis.range[0]'], relay['xaxis.range[1]']]
+    elif 'xaxis.range' in relay:
+        x_range = [relay['xaxis.range'][0], relay['xaxis.range'][1]]
+        
+    y1 = [r['pure time'] for r in adcollection_rmetrics.find()]
+    y2 = [r['waits'] for r in adcollection_rmetrics.find()]
     
     trace1 = Scatter(
             x = x,
-            y = [r['pure time'] for r in adcollection_rmetrics.find()],
-            fill = 'tozeroy',
-            mode = 'none',
-            name = 'pure time')
+            y = y1,
+            name = 'Pure time')
+    trace1_cummean = Scatter(
+            x = x,
+            y = pd.Series(y1).expanding().mean(),
+            name = 'Pure time',
+            visible = False)
     
     trace2 = Scatter(
             x = x,
-            y = [r['waits'] for r in adcollection_rmetrics.find()],
-            fill = 'tonexty',
-            mode = 'none',
+            y = y2,
             name = 'wait time')
     
+    trace2_cummean = Scatter(
+            x = x,
+            y = pd.Series(y2).expanding().mean(),
+            name = 'Wait time',
+            visible = False)
+        
+    updatemenus = list([
+        dict(type = 'buttons',
+             active = -1,
+             buttons = list([
+                dict(label = 'CA',
+                     method = 'update',
+                     args = [{'visible':[False, True, False, True]},
+                             {'title':'Pure time to process link'}]
+                ),
+                dict(label = 'Reset',
+                     method = 'update',
+                     args = [{'visible':[True, False, True, False]},
+                              {'title':'Pure vs. wait time'}]
+                )
+            ])
+        )
+    ])
+    
     layout = dict(
-            title = 'Pure vs. wait time, in time',
+            title = 'Pure vs. wait time',
             xaxis = dict(title = 'Link nr.',
                          range = x_range),
-            yaxis = dict(title = 'Time [s]'))
+            yaxis = dict(title = 'Time [s]'),
+            updatemenus = updatemenus)
+    
+    
     
     if xtype == 'date':
         layout['xaxis']['rangeselector'] = dict(
@@ -264,7 +324,7 @@ def gen_area1(xtype):
                                 dict(step = 'all')
                         ]))
     
-    return Figure(data = [trace1, trace2], layout = layout)
+    return Figure(data = [trace1, trace1_cummean, trace2, trace2_cummean], layout = layout)
 
 
 def gen_histogram1():

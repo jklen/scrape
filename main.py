@@ -41,6 +41,9 @@ adcollection_rmetrics = scrapedb['rmetrics']
 
 #   overall in time vs. time window (same as interval, moving average/median)
 #   same range in area chart as in line chart
+#   avg line for pure, wait time
+#   random buttons which will show only selected series
+#   minimum example af axes reset bug, try to update dcc.Graph, not html.Div
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
