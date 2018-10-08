@@ -94,6 +94,16 @@ app.layout = html.Div([
             ], className = 'row'),
             html.Div([
                     html.Div([
+                        dcc.Graph(id = 'line_attempts')
+                    ], className = 'six columns'),
+                    html.Div([
+                        dcc.Graph(id = 'line_pure_wait_sum')
+                    ], className = 'six columns')
+                    
+                    
+            ], className = 'row'),
+            html.Div([
+                    html.Div([
                         html.Pre(id = 'relayed data', style = styles['pre'])
                     ], className = 'six columns'),
                     html.Div([
@@ -112,10 +122,158 @@ app.layout = html.Div([
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
+@app.callback(Output('line_attempts', 'figure'),
+              [Input('xaxis', 'value'),
+               Input('tab2_interval', 'n_intervals')])
+def line_attempts(xtype, interval):
+    x = [r['timestamp'] for r in adcollection_rmetrics.find()]
+    x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
+    if xtype == 'nr':
+        x = [i for i in range(0, len(x) + 1)]
+        x_range = [x[0], x[-1]]
+    y1 = [r['attempts'] for r in adcollection_rmetrics.find()]
+    y2 = pd.Series(y1).expanding().mean()
+    
+    trace = Scatter(x = x,
+                    y = y1,
+                    name = 'Regular')
+    trace2 = Scatter(x = x,
+                     y = y2,
+                     name = 'CA',
+                     marker = dict(
+                             color = '#fb2e01'))
+    
+    layout = dict(
+            title = 'Number of attempts per link',
+            xaxis = dict(title = 'Link nr.',
+                         range = x_range),
+            yaxis = dict(title = 'Nr. of attempts')
+    )
+            
+    if xtype == 'date':
+        layout['xaxis']['rangeselector'] = dict(
+                buttons = list([dict(count = 1,
+                                     label = '1d',
+                                     step = 'day',
+                                     stepmode = 'backward'),
+                                dict(count = 1,
+                                     label = '1h',
+                                     step = 'hour',
+                                     stepmode = 'backward'),
+                                dict(count = 30,
+                                     label = '30m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(count = 10,
+                                     label = '10m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(step = 'all')
+                        ]))
+    
+    return Figure(data = [trace, trace2], layout = layout)
+
+@app.callback(Output('line_pure_wait_sum', 'figure'),
+              [Input('xaxis', 'value'),
+               Input('tab2_interval', 'n_intervals')])
+def line_pure_wait_sum(xtype, interval):
+    x = [r['timestamp'] for r in adcollection_rmetrics.find()]
+    x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
+    if xtype == 'nr':
+        x = [i for i in range(0, len(x) + 1)]
+        x_range = [x[0], x[-1]]
+    y1 = pd.Series([r['pure time'] for r in adcollection_rmetrics.find()]).expanding().sum()
+    y2 = pd.Series([r['waits'] for r in adcollection_rmetrics.find()]).expanding().sum()
+    y3 = pd.Series([r['time success'] for r in adcollection_rmetrics.find()]).expanding().sum()
+    y_trace5 = [0.5 for i in range(0, len(x))]
+    y_trace6 = [1 for i in range(0, len(x))]
+    
+    trace = Scatter(x = x,
+                    y = y1,
+                    name = 'Pure time')
+    trace2 = Scatter(x = x,
+                     y = y2,
+                     name = 'Wait time')
+    trace3 = Scatter(x = x,
+                     y = y3,
+                     name = 'Total',
+                     marker = dict(color = '#fb2e01'))
+    trace4 = Scatter(x = x,
+                     y = y2/y1,
+                     name = 'Waits/Pure',
+                     line = dict(dash = 'dash'),
+                     yaxis = 'y2'
+                     )
+    trace5 = Scatter(x = x,
+                     y = y_trace5,
+                     line = dict(dash = 'dash'),
+                     marker = dict(color = '#d7dbdd'),
+                    yaxis = 'y2',
+                    showlegend = False)
+    trace6 = Scatter(x = x,
+                     y = y_trace6,
+                     line = dict(dash = 'dash'),
+                     marker = dict(color = '#d7dbdd'),
+                    yaxis = 'y2',
+                    showlegend = False)
+                     
+    updatemenus = list([
+        dict(type = 'buttons',
+             active = -1,
+             buttons = list([
+                dict(label = 'H',
+                     method = 'update',
+                     args = [{'y':[y1/3600, y2/3600, y3/3600, y2/y1, y_trace5, y_trace6]}]),
+                dict(label = 'M',
+                     method = 'update',
+                     args = [{'y':[y1/60, y2/60, y3/60, y2/y1, y_trace5, y_trace6]}]
+                ),
+                dict(label = 'S',
+                     method = 'update',
+                     args = [{'y':[y1, y2, y3, y2/y1, y_trace5, y_trace6]}]
+                )
+            ])
+        )
+    ])
+    
+    layout = dict(
+            title = 'Cumulative sum of  times',
+            xaxis = dict(title = 'Link nr.',
+                         range = x_range),
+            yaxis = dict(title = 'Time'),
+            updatemenus = updatemenus,
+            yaxis2 = dict(overlaying = 'y',
+                          side = 'right',
+                          title = 'Ratio')
+    )
+            
+    if xtype == 'date':
+        layout['xaxis']['rangeselector'] = dict(
+            buttons = list([dict(count = 1,
+                                 label = '1d',
+                                 step = 'day',
+                                 stepmode = 'backward'),
+                            dict(count = 1,
+                                 label = '1h',
+                                 step = 'hour',
+                                 stepmode = 'backward'),
+                            dict(count = 30,
+                                 label = '30m',
+                                 step = 'minute',
+                                 stepmode = 'backward'),
+                            dict(count = 10,
+                                 label = '10m',
+                                 step = 'minute',
+                                 stepmode = 'backward'),
+                            dict(step = 'all')
+                    ]))
+    
+    return Figure(data = [trace, trace2, trace3, trace4, trace5, trace6], layout = layout)
+
 @app.callback(Output('relayed data status', 'children'),               
                 [Input('xaxis', 'value')],
                 [State('line_time', 'relayoutData')])
-def displaty_relay_data_state(radio, r):
+def display_relay_data_state(radio, r):
     return json.dumps(r, indent = 2)
 
 @app.callback(Output('relayed data', 'children'),
@@ -202,16 +360,57 @@ def gen_line1(slider, xtype):
     trace = Scatter(x = x,
                     y = y,
                     name = 'Regular')
+    trace_cummean = Scatter(
+            x = x,
+            y = pd.Series(y).expanding().mean(),
+            name = 'CA',
+            visible = False)
+    trace_cummedian = Scatter(
+            x = x,
+            y = pd.Series(y).expanding().median(),
+            name = 'CM',
+            visible = False)
+    trace_cum1q = Scatter(
+            x = x,
+            y = pd.Series(y).expanding().quantile(0.25),
+            name = 'C1Q',
+            visible = False,
+            line = dict(dash = 'dash'))
+    trace_cum3q = Scatter(
+            x = x,
+            y = pd.Series(y).expanding().quantile(0.75),
+            name = 'C3Q',
+            visible = False,
+            line = dict(dash = 'dash'))    
     trace_MA = Scatter(x = x,
                        y = y_MA,
                        marker = {'color':'#fb2e01'},
-                        name = str(slider) + ' steps MA')
+                        name = 'MA')
+    
+    updatemenus = list([
+        dict(type = 'buttons',
+             active = -1,
+             buttons = list([
+                dict(label = 'CAMQ',
+                     method = 'update',
+                     args = [{'visible':[False, True, True, True, True, False]},
+                             {'title':'Whole time to process link - cum. statistics'}]
+                ),
+                dict(label = 'Reset',
+                     method = 'update',
+                     args = [{'visible':[True, False, False, False, False, True]},
+                              {'title':'Whole time to process link'}]
+                )
+            ])
+        )
+    ])
     
     layout = dict(
-            title = 'Time to process links',
+            title = 'Whole time to process links',
             xaxis = dict(title = 'Link nr.',
                          rangeslider=dict(visible = True)),
-            yaxis = dict(title = 'Time [s]')
+            yaxis = dict(title = 'Time [s]'),
+            updatemenus = updatemenus
     )
             
     if xtype == 'date':
@@ -238,7 +437,7 @@ def gen_line1(slider, xtype):
     elif xtype == 'nr':
         layout['xaxis']['range'] = [x[0], x[-1]]
     
-    return Figure(data = [trace, trace_MA], layout = layout)
+    return Figure(data = [trace, trace_cummean, trace_cummedian, trace_cum1q, trace_cum3q, trace_MA], layout = layout)
 
 def gen_area1(xtype, relay):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
@@ -264,30 +463,45 @@ def gen_area1(xtype, relay):
             y = pd.Series(y1).expanding().mean(),
             name = 'Pure time',
             visible = False)
+    trace1_cummedian = Scatter(
+            x = x,
+            y = pd.Series(y1).expanding().median(),
+            name = 'Pure time',
+            visible = False)
     
     trace2 = Scatter(
             x = x,
             y = y2,
-            name = 'wait time')
+            name = 'Wait time')
     
     trace2_cummean = Scatter(
             x = x,
             y = pd.Series(y2).expanding().mean(),
             name = 'Wait time',
             visible = False)
-        
+    trace2_cummedian = Scatter(
+            x = x,
+            y = pd.Series(y2).expanding().median(),
+            name = 'Wait time',
+            visible = False)
+            
     updatemenus = list([
         dict(type = 'buttons',
              active = -1,
              buttons = list([
                 dict(label = 'CA',
                      method = 'update',
-                     args = [{'visible':[False, True, False, True]},
-                             {'title':'Pure time to process link'}]
+                     args = [{'visible':[False, True, False, False, True, False]},
+                             {'title':'Time to process link - cumulative average'}]
+                ),
+                dict(label = 'CM',
+                     method = 'update',
+                     args = [{'visible':[False, False, True, False, False, True]},
+                             {'title':'Time to process link - cumulative median'}]
                 ),
                 dict(label = 'Reset',
                      method = 'update',
-                     args = [{'visible':[True, False, True, False]},
+                     args = [{'visible':[True, False, False, True, False, False]},
                               {'title':'Pure vs. wait time'}]
                 )
             ])
@@ -324,7 +538,7 @@ def gen_area1(xtype, relay):
                                 dict(step = 'all')
                         ]))
     
-    return Figure(data = [trace1, trace1_cummean, trace2, trace2_cummean], layout = layout)
+    return Figure(data = [trace1, trace1_cummean, trace1_cummedian, trace2, trace2_cummean, trace2_cummedian], layout = layout)
 
 
 def gen_histogram1():

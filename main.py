@@ -35,15 +35,11 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #       number of links and pictures successfuly scraped
 #       % of not usable proxies
 #       mean successful response time overall, in some intervals
-#       ratio of pure time/wait time in time
 #       overall/time window
 #       map with proxies stats
 
 #   overall in time vs. time window (same as interval, moving average/median)
-#   same range in area chart as in line chart
-#   avg line for pure, wait time
-#   random buttons which will show only selected series
-#   minimum example af axes reset bug, try to update dcc.Graph, not html.Div
+#   minimum example af axes reset bug
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
