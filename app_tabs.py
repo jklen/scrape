@@ -113,7 +113,7 @@ app.layout = html.Div([
                     
             ], className = 'row')
         ]),
-        dcc.Tab(label='Tab three', children=[
+        dcc.Tab(label='Bandits', children=[
             html.Div(id = 'tab3_content')
         ]),
     ])

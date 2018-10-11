@@ -62,7 +62,7 @@ class proxyPool:
             for proxy in bproxylist:
                 prmeans_list.append(self.all_proxies[proxy]['mean'])
             bandit_means.append(np.mean([i for i in prmeans_list if i != None]))
-            self.bandit_means.append(bandit_means)
+        self.bandit_means.append(bandit_means)
         print(('bandits means', bandit_means))
         # proxies position and position difference from previous request after sorting
         for i, proxy in enumerate(self.ordered_proxies):

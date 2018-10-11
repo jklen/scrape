@@ -27,16 +27,13 @@ adcollection_rmetrics = scrapedb['rmetrics']
 
 #   streaming plots, some dashboard
 #       histogram of all proxies response times within all bandits
-#       line chart with bandit means
-#       bar chart how many times each bandit was chosen
+#       bar chart 
 #       mean change of proxies position within pool, overall, in some intervals
 #       ratio successful request nr./all requests nr, overall, in some intervals
 #       number of successful, unsuccesfull, total requests overall
 #       number of links and pictures successfuly scraped
 #       % of not usable proxies
-#       mean successful response time overall, in some intervals
-#       overall/time window
-#       map with proxies stats
+#       proxy performance on map by countries, webs
 
 #   overall in time vs. time window (same as interval, moving average/median)
 #   minimum example af axes reset bug
@@ -44,6 +41,14 @@ adcollection_rmetrics = scrapedb['rmetrics']
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
 #   nr. of pictures scraped (saved) if any
+#   map of which property triggers which callbacks
+#   when I change a property with one callback will it trigger another?
+#   limit amount of data and put it to hidden div, only few charts will query all data
+
+#   bandits
+#       bandit means, medians - line chart
+#       how many times each bandit was chosen - bar chart
+#       see the means of proxies inside each bandit - grouped barchart
 
 #   link to rmetrics collection
 
@@ -53,7 +58,7 @@ if __name__ == '__main__':
     proxy_list = scrape_proxies()
     proxy_pool = proxyPool(proxy_list, 10, 0.4)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-    links = scrape_topreality_links(region = 'kosicky kraj', pages_to_scrape = 3)
+    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 5)
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
