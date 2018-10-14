@@ -21,6 +21,7 @@ import json
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
 adcollection_rmetrics = scrapedb['rmetrics']
+adcollection_poolmetrics = scrapedb['poolmetrics']
 
 app = dash.Dash(__name__)
 #app.config['suppress_callback_exceptions'] = True
@@ -114,13 +115,31 @@ app.layout = html.Div([
             ], className = 'row')
         ]),
         dcc.Tab(label='Bandits', children=[
-            html.Div(id = 'tab3_content')
+            html.Div([
+                    html.Div([
+                            dcc.Graph(id = 'line_bandit_means')
+                    ], className = 'six columns'),
+                    html.Div([
+                            dcc.Graph(id = 'bar_bandit_chosennr')
+                    ], className = 'six columns')
+                    
+            ], className = 'row')
         ]),
     ])
 ])
                     
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+@app.callback(Output('line_bandit_means', 'figure'),
+              [Input('tab2_interval', 'n_intervals')])
+def line_bandit_means(interval):
+    meansdf = pd.DataFrame([b['bandit_means'] for b in adcollection_poolmetrics.find()])
+    x = [i for i in range(0, len(meansdf) + 1)]
+    
+    data = [Scatter(x = x, y = meansdf[i], name = str(i)) for i in list(meansdf)]
+    
+    return Figure(data = data)
 
 @app.callback(Output('line_attempts', 'figure'),
               [Input('xaxis', 'value'),
