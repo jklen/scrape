@@ -14,6 +14,7 @@ from dash.dependencies import Input, Output, Event, State
 import pymongo
 import numpy as np
 from collections import Counter
+from operator import itemgetter
 import pandas as pd
 import datetime
 import json
@@ -33,6 +34,10 @@ styles = {
 }
 
 app.layout = html.Div([
+    html.Div([
+            html.H3('Column 1'),
+            html.Button(children = 'Button', id = 'but')
+    ], className = 'two columns'),
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Links overall', children=[
             html.Div([html.Div(id = 'overall_content'), 
@@ -121,7 +126,11 @@ app.layout = html.Div([
                     ], className = 'six columns'),
                     html.Div([
                             dcc.Graph(id = 'bar_bandit_chosennr')
-                    ], className = 'six columns')
+                    ], className = 'six columns'),
+                    dcc.Interval(
+                            id = 'tab3_interval',
+                            interval = 2000,
+                            n_intervals = 0)
                     
             ], className = 'row')
         ]),
@@ -131,15 +140,43 @@ app.layout = html.Div([
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
+@app.callback(Output('bar_bandit_chosennr', 'figure'),
+              [Input('tab3_interval', 'n_intervals')])
+def bar_bandit_chosennr(interval):
+    counted_vals = Counter([b['choosen_bandit'] for b in adcollection_poolmetrics.find()])
+    counted_vals_sorted = sorted(counted_vals.items(), key = itemgetter(0))
+    keys = [i[0] for i in counted_vals_sorted]
+    vals = [i[1] for i in counted_vals_sorted]
+    
+    trace = Bar(
+            x = keys,
+            y = vals,
+            opacity = 0.75,
+            marker = dict(
+                    color = '#92b4f2'))
+    
+    layout = Layout(bargap = 0.2,
+                    title = 'How much each bandit was chosen',
+                    xaxis = dict(
+                            type = 'category',
+                            title = 'Bandit'),
+                    yaxis = dict(
+                            title = 'Count'))
+    return Figure(data = [trace], layout = layout)
+
 @app.callback(Output('line_bandit_means', 'figure'),
-              [Input('tab2_interval', 'n_intervals')])
+              [Input('tab3_interval', 'n_intervals')])
 def line_bandit_means(interval):
     meansdf = pd.DataFrame([b['bandit_means'] for b in adcollection_poolmetrics.find()])
     x = [i for i in range(0, len(meansdf) + 1)]
     
     data = [Scatter(x = x, y = meansdf[i], name = str(i)) for i in list(meansdf)]
+    layout= dict(
+            title = 'Bandits cumulative mean',
+            xaxis = dict(title = 'Scraped link nr.'),
+            yaxis = dict(title = 'Time [s]'))
     
-    return Figure(data = data)
+    return Figure(data = data, layout = layout)
 
 @app.callback(Output('line_attempts', 'figure'),
               [Input('xaxis', 'value'),
@@ -316,6 +353,14 @@ def stop_interval(clicks):
         elif clicks % 2 == 0:
             return 2000
 
+@app.callback(Output('tab3_interval', 'interval'), [Input('interval_button', 'n_clicks')])
+def stop_interval2(clicks):
+    #if clicks != None:
+        if clicks % 2 == 1:
+            return 600000
+        elif clicks % 2 == 0:
+            return 2000
+
 @app.callback(Output('overall_content', 'children'), [Input('tabs', 'value'), Input('tab1_interval', 'n_intervals')])
 def content_links_overall(selected_tab, interval):
     to_return = html.Div([
@@ -426,8 +471,7 @@ def gen_line1(slider, xtype):
     
     layout = dict(
             title = 'Whole time to process links',
-            xaxis = dict(title = 'Link nr.',
-                         rangeslider=dict(visible = True)),
+            xaxis = dict(title = 'Link nr.'),
             yaxis = dict(title = 'Time [s]'),
             updatemenus = updatemenus
     )
@@ -617,8 +661,9 @@ def gen_histogram1():
 
 def gen_histogram_attempts():
     counted_vals = Counter([r['attempts'] for r in adcollection_rmetrics.find()])
-    keys = list(counted_vals.keys())
-    vals = [counted_vals[i] for i in counted_vals]
+    counted_vals_sorted = sorted(counted_vals.items(), key = itemgetter(0))
+    keys = [i[0] for i in counted_vals_sorted]
+    vals = [i[1] for i in counted_vals_sorted]
     
     trace = Bar(
             x = keys,

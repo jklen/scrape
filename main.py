@@ -44,10 +44,13 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #   limit amount of data and put it to hidden div, only few charts will query all data
 
 #   bandits
-#       bandit means, medians - line chart
-#       how many times each bandit was chosen - bar chart
+#       bandit means ok, medians - line chart
+#       how many times each bandit was chosen - bar chart ok
 #       see the means of proxies inside each bandit - grouped barchart
-#       click on proxy bar - stat for clicked proxy
+#       click on proxy bar - stat for clicked proxy (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
+
+#   one column with prompts: button to start/stop refresh, moving average as inputbox, X axis type checkbox
+#       which will be generated dynamically depending on which tab is clicked
 
 #   link to rmetrics collection
 
