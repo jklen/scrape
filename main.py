@@ -46,11 +46,14 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #   bandits
 #       bandit means ok, medians - line chart
 #       how many times each bandit was chosen - bar chart ok
+#       add to chart - how many times each bandit was chosen - boxplot to each bar with bandits proxies
 #       see the means of proxies inside each bandit - grouped barchart
 #       click on proxy bar - stat for clicked proxy (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
+#   BUG - the timestamp for links in line charts on 2nd tab is the same for multiple links (when pictures are included)
 
-#   one column with prompts: button to start/stop refresh, moving average as inputbox, X axis type checkbox
+#   one column with prompts: button to start/stop refresh, moving average as inputbox (or buttons +1/-1), X axis type checkbox
 #       which will be generated dynamically depending on which tab is clicked
+#   MA to pure vs. wait time chart
 
 #   MA to pure vs. wait time chart
 
@@ -66,7 +69,7 @@ if __name__ == '__main__':
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
-        ad.scrape_all(savepics = False)
+        ad.scrape_all(savepics = True)
         proxy_pool = ad.proxy_pool
         proxy_pool.writetodb_poolmetrics(adcollection_poolmetrics, sum(ad.attempts))
         ad.writetodb(adcollection)
