@@ -52,6 +52,8 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #   one column with prompts: button to start/stop refresh, moving average as inputbox, X axis type checkbox
 #       which will be generated dynamically depending on which tab is clicked
 
+#   MA to pure vs. wait time chart
+
 #   link to rmetrics collection
 
 if __name__ == '__main__':
