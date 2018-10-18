@@ -55,8 +55,6 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #       which will be generated dynamically depending on which tab is clicked
 #   MA to pure vs. wait time chart
 
-#   MA to pure vs. wait time chart
-
 #   link to rmetrics collection
 
 if __name__ == '__main__':
