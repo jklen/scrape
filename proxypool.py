@@ -86,3 +86,4 @@ class proxyPool:
             print('Not able to create list to write bandits metrics to db. ' + str(e))
         else:
             x = dbcollection.insert_many(to_write)
+    

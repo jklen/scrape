@@ -39,6 +39,7 @@ class TopRealityAd:
         self.time_success = []
         self.attempts = []
         self.waits = []
+        self.timestamps = []
                 
         success = False
         attempts = 0
@@ -64,6 +65,7 @@ class TopRealityAd:
                 self.time_success.append(r_time_end - r_time_start)
                 self.attempts.append(attempts)
                 self.waits.append(np.sum(time_wait))
+                self.timestamps.append(datetime.datetime.now())
                 
                 self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                 self.soup = BeautifulSoup(response.content, 'html.parser')
@@ -136,6 +138,8 @@ class TopRealityAd:
                         self.time_success.append(r_time_end - r_time_start)
                         self.attempts.append(attempts)
                         self.waits.append(np.sum(time_wait))
+                        self.timestamps.append(datetime.datetime.now())
+                        
                         self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                         with open(gallery_dir + '/' + 'img' + str(i) + '.jpg', 'wb') as out_file:
                             try:
@@ -143,7 +147,7 @@ class TopRealityAd:
                             except:
                                 print('Error saving picture')
                             else:
-                                print('Picture %d saved successfuly, attempts: %d' %(i + 1, attempts))
+                                print('Picture %d from %d saved successfuly, attempts: %d' %(i + 1, str(len(self.gallerylinks)), attempts))
                                 success = True
                 
     
@@ -244,8 +248,8 @@ class TopRealityAd:
     
     def writetodb_rmetrics(self, dbcollection):
         if self.active:
-            time_now = datetime.datetime.now()
-            to_write = [{'timestamp':time_now, 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i], 'pure time':self.time_success[i] - self.waits[i]} for i in range(len(self.time_success))]
+            #time_now = datetime.datetime.now()
+            to_write = [{'timestamp':self.timestamps[i], 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i], 'pure time':self.time_success[i] - self.waits[i]} for i in range(len(self.time_success))]
             x = dbcollection.insert_many(to_write)
 
 def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):

@@ -44,16 +44,16 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #   limit amount of data and put it to hidden div, only few charts will query all data
 
 #   bandits
-#       bandit means ok, medians - line chart
-#       how many times each bandit was chosen - bar chart ok
-#       add to chart - how many times each bandit was chosen - boxplot to each bar with bandits proxies
-#       see the means of proxies inside each bandit - grouped barchart
-#       click on proxy bar - stat for clicked proxy (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
-#   BUG - the timestamp for links in line charts on 2nd tab is the same for multiple links (when pictures are included)
+#       line chart with proxies positon change as positon_change/nr_of_proxies
+#   proxies
+#       separate plot - boxplot of means of all bandits proxies https://community.plot.ly/t/box-plots-manually-supply-median-and-quartiles-performance-for-alrge-sample-sizes/2459/3
+#       click on box -> proxies in clicked bandit all response times, separately window responses
+#       proxy map (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
 
-#   one column with prompts: button to start/stop refresh, moving average as inputbox (or buttons +1/-1), X axis type checkbox
-#       which will be generated dynamically depending on which tab is clicked
-#   MA to pure vs. wait time chart
+#   one column with prompts:
+#       button to start/stop refresh, 
+#       moving average as inputbox (or buttons +1/-1), 
+#       X axis type checkbox
 
 #   link to rmetrics collection
 

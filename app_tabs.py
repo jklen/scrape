@@ -173,7 +173,7 @@ def line_bandit_means(interval):
     data = [Scatter(x = x, y = meansdf[i], name = str(i)) for i in list(meansdf)]
     layout= dict(
             title = 'Bandits cumulative mean',
-            xaxis = dict(title = 'Scraped link nr.'),
+            xaxis = dict(title = 'Request nr.'),
             yaxis = dict(title = 'Time [s]'))
     
     return Figure(data = data, layout = layout)
@@ -407,9 +407,10 @@ def content_links_time_window(selected_tab, interval, slider, n_clicks, xaxis):
                Input('tab2_interval', 'n_intervals'),
                Input('interval_button', 'n_clicks'),
                Input('xaxis', 'value'),
-               Input('line_time', 'relayoutData')])
-def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay):
-    to_return = gen_area1(xaxis, relay)       
+               Input('line_time', 'relayoutData'),
+               Input('slider_MA_tab2', 'value')])
+def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay, ma):
+    to_return = gen_area1(xaxis, relay, ma)       
     
     return to_return
     
@@ -502,7 +503,7 @@ def gen_line1(slider, xtype):
     
     return Figure(data = [trace, trace_cummean, trace_cummedian, trace_cum1q, trace_cum3q, trace_MA], layout = layout)
 
-def gen_area1(xtype, relay):
+def gen_area1(xtype, relay, ma):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
@@ -531,6 +532,11 @@ def gen_area1(xtype, relay):
             y = pd.Series(y1).expanding().median(),
             name = 'Pure time',
             visible = False)
+    trace1_ma = Scatter(
+            x = x,
+            y = pd.Series(y1).rolling(ma).mean(),
+            name = 'Pure time',
+            visible = False)
     
     trace2 = Scatter(
             x = x,
@@ -547,6 +553,11 @@ def gen_area1(xtype, relay):
             y = pd.Series(y2).expanding().median(),
             name = 'Wait time',
             visible = False)
+    trace2_ma = Scatter(
+            x = x,
+            y = pd.Series(y2).rolling(ma).mean(),
+            name = 'Wait time',
+            visible = False)
             
     updatemenus = list([
         dict(type = 'buttons',
@@ -554,17 +565,22 @@ def gen_area1(xtype, relay):
              buttons = list([
                 dict(label = 'CA',
                      method = 'update',
-                     args = [{'visible':[False, True, False, False, True, False]},
+                     args = [{'visible':[False, True, False, False, False, True, False, False]},
                              {'title':'Time to process link - cumulative average'}]
                 ),
                 dict(label = 'CM',
                      method = 'update',
-                     args = [{'visible':[False, False, True, False, False, True]},
+                     args = [{'visible':[False, False, True, False, False, False, True, False]},
+                             {'title':'Time to process link - cumulative median'}]
+                ),
+                dict(label = 'MA',
+                     method = 'update',
+                     args = [{'visible':[False, False, False, True, False, False, False, True]},
                              {'title':'Time to process link - cumulative median'}]
                 ),
                 dict(label = 'Reset',
                      method = 'update',
-                     args = [{'visible':[True, False, False, True, False, False]},
+                     args = [{'visible':[True, False, False, True, False, False, False, False]},
                               {'title':'Pure vs. wait time'}]
                 )
             ])
@@ -601,7 +617,7 @@ def gen_area1(xtype, relay):
                                 dict(step = 'all')
                         ]))
     
-    return Figure(data = [trace1, trace1_cummean, trace1_cummedian, trace2, trace2_cummean, trace2_cummedian], layout = layout)
+    return Figure(data = [trace1, trace1_cummean, trace1_cummedian, trace1_ma, trace2, trace2_cummean, trace2_cummedian, trace2_ma], layout = layout)
 
 
 def gen_histogram1():
