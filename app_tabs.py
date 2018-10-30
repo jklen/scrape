@@ -119,7 +119,7 @@ app.layout = html.Div([
                     
             ], className = 'row')
         ]),
-        dcc.Tab(label='Bandits', children=[
+        dcc.Tab(label='Pool', children=[
             html.Div([
                     html.Div([
                             dcc.Graph(id = 'line_bandit_means')
@@ -132,6 +132,12 @@ app.layout = html.Div([
                             interval = 2000,
                             n_intervals = 0)
                     
+            ], className = 'row'),
+            html.Div([
+                    html.Div([
+                            dcc.Graph(id = 'line_position_change')                            
+                    ], className = 'six columns')
+                    
             ], className = 'row')
         ]),
     ])
@@ -139,6 +145,11 @@ app.layout = html.Div([
                     
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+@app.callback(Output('line_position_change', 'figure'),
+              [Input('tab3_interval', 'n_intervals')])
+def line_position_change(interval):
+    
 
 @app.callback(Output('bar_bandit_chosennr', 'figure'),
               [Input('tab3_interval', 'n_intervals')])

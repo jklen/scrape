@@ -10,6 +10,7 @@ import requests
 import numpy as np
 from myscraper import wait
 import datetime
+import pandas as pd
 
 def proxy_pool_test(proxy_pool, browser_list, requests_nr = 100):
     url = 'https://httpbin.org/ip'
@@ -80,8 +81,12 @@ class proxyPool:
                 
     def writetodb_poolmetrics(self, dbcollection, nr_of_updates): # bude sum(ad.attempts)
         #   {'timestamp' self.update_times[-nr_of_updates], 'bandit_means': self.bandit_means[-nr_of_updates], '}
+        ppos_change = [[self.all_proxies[p]['position_change'][-nr_of_updates:][i] for p in self.all_proxies.keys()] for i in range(0, len(self.all_proxies[list(self.all_proxies.keys())[0]]['position_change'][-nr_of_updates:]))]
+        ppos_change_df = pd.DataFrame(ppos_change)
+        position_change = (ppos_change_df.apply(lambda x: len(x[x == 0]), axis = 1)/ppos_change_df.shape[1]).tolist()
+
         try:
-            to_write = [{'timestamp_pool_update':self.update_times[i], 'bandit_means':self.bandit_means[i], 'choosen_bandit':self.bandits_chosennr[i]} for i in range(-nr_of_updates, 0)]
+            to_write = [{'timestamp_pool_update':self.update_times[i], 'bandit_means':self.bandit_means[i], 'choosen_bandit':self.bandits_chosennr[i], 'position_change':position_change[i]} for i in range(-nr_of_updates, 0)]
         except Exception as e:
             print('Not able to create list to write bandits metrics to db. ' + str(e))
         else:

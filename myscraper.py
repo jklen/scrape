@@ -147,7 +147,7 @@ class TopRealityAd:
                             except:
                                 print('Error saving picture')
                             else:
-                                print('Picture %d from %d saved successfuly, attempts: %d' %(i + 1, str(len(self.gallerylinks)), attempts))
+                                print('Picture %d from %d saved successfuly, attempts: %d' %(i + 1, len(self.gallerylinks), attempts))
                                 success = True
                 
     

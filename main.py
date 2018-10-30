@@ -44,7 +44,7 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #   limit amount of data and put it to hidden div, only few charts will query all data
 
 #   bandits
-#       line chart with proxies positon change as positon_change/nr_of_proxies
+#       line chart with proxies positon change as abs(positon_change)/nr_of_proxies
 #   proxies
 #       separate plot - boxplot of means of all bandits proxies https://community.plot.ly/t/box-plots-manually-supply-median-and-quartiles-performance-for-alrge-sample-sizes/2459/3
 #       click on box -> proxies in clicked bandit all response times, separately window responses
@@ -54,6 +54,7 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #       button to start/stop refresh, 
 #       moving average as inputbox (or buttons +1/-1), 
 #       X axis type checkbox
+#       limit number of visible data in all time-based plots (for example last 300 values)
 
 #   link to rmetrics collection
 
@@ -63,11 +64,11 @@ if __name__ == '__main__':
     proxy_list = scrape_proxies()
     proxy_pool = proxyPool(proxy_list, 10, 0.4)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 5)
+    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 2)
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
-        ad.scrape_all(savepics = True)
+        ad.scrape_all(savepics = False)
         proxy_pool = ad.proxy_pool
         proxy_pool.writetodb_poolmetrics(adcollection_poolmetrics, sum(ad.attempts))
         ad.writetodb(adcollection)
