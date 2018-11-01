@@ -136,7 +136,7 @@ app.layout = html.Div([
             html.Div([
                     html.Div([
                             dcc.Graph(id = 'line_position_change')                            
-                    ], className = 'six columns')
+                    ], className = 'twelve columns')
                     
             ], className = 'row')
         ]),
@@ -147,9 +147,73 @@ app.layout = html.Div([
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
 @app.callback(Output('line_position_change', 'figure'),
-              [Input('tab3_interval', 'n_intervals')])
-def line_position_change(interval):
+              [Input('tab3_interval', 'n_intervals'),
+               Input('xaxis', 'value'),
+               Input('slider_MA_tab2', 'value')])
+def line_position_change(interval, xtype, ma):
+    x = [r['timestamp_pool_update'] for r in adcollection_poolmetrics.find()]
+    x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
+    if xtype == 'nr':
+        x = [i for i in range(0, len(x) + 1)]
+        x_range = [x[0], x[-1]]
+    y1 = [r['position_change'] for r in adcollection_poolmetrics.find()]
+    y2 = pd.Series(y1).rolling(ma).mean()
+    y3 = pd.Series(y1).expanding().mean()
     
+    trace = Scatter(x = x,
+                    y = y1,
+                    name = 'Position change',
+                    marker = dict(color = '#92b4f2'),
+                    line = dict( width = 1))
+    trace2 = Scatter(x = x,
+                     y = y2,
+                     name = 'MA',
+                     marker = dict(
+                             color = '#fb2e01'),
+                    line = dict(width = 1.5))
+                             
+    trace3 = Scatter(x = x,
+                     y = y3,
+                     name = 'CA',
+                     marker = dict(
+                             color = '#0d3592'),
+                    line = dict(dash = 'dash',
+                                width = 1.5),
+                    yaxis = 'y2')
+    
+    layout = dict(
+            title = 'Proxies position change',
+            xaxis = dict(title = 'Request nr.',
+                         range = x_range),
+            yaxis = dict(title = 'Ratio',
+                         range = [0,1.1]),
+            yaxis2 = dict(overlaying = 'y',
+                          side = 'right',
+                          range = [0,1.1])
+    )
+            
+    if xtype == 'date':
+        layout['xaxis']['rangeselector'] = dict(
+                buttons = list([dict(count = 1,
+                                     label = '1d',
+                                     step = 'day',
+                                     stepmode = 'backward'),
+                                dict(count = 1,
+                                     label = '1h',
+                                     step = 'hour',
+                                     stepmode = 'backward'),
+                                dict(count = 30,
+                                     label = '30m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(count = 10,
+                                     label = '10m',
+                                     step = 'minute',
+                                     stepmode = 'backward'),
+                                dict(step = 'all')
+                        ]))
+    
+    return Figure(data = [trace, trace2, trace3], layout = layout)
 
 @app.callback(Output('bar_bandit_chosennr', 'figure'),
               [Input('tab3_interval', 'n_intervals')])
@@ -181,7 +245,7 @@ def line_bandit_means(interval):
     meansdf = pd.DataFrame([b['bandit_means'] for b in adcollection_poolmetrics.find()])
     x = [i for i in range(0, len(meansdf) + 1)]
     
-    data = [Scatter(x = x, y = meansdf[i], name = str(i)) for i in list(meansdf)]
+    data = [Scatter(x = x, y = meansdf[i], name = str(i), line = dict(width = 1)) for i in list(meansdf)]
     layout= dict(
             title = 'Bandits cumulative mean',
             xaxis = dict(title = 'Request nr.'),
@@ -203,12 +267,14 @@ def line_attempts(xtype, interval):
     
     trace = Scatter(x = x,
                     y = y1,
-                    name = 'Regular')
+                    name = 'Regular',
+                    line = dict(width = 1))
     trace2 = Scatter(x = x,
                      y = y2,
                      name = 'CA',
                      marker = dict(
-                             color = '#fb2e01'))
+                             color = '#fb2e01'),
+                    line = dict(width = 1.5))
     
     layout = dict(
             title = 'Number of attempts per link',
@@ -257,18 +323,22 @@ def line_pure_wait_sum(xtype, interval):
     
     trace = Scatter(x = x,
                     y = y1,
-                    name = 'Pure time')
+                    name = 'Pure time',
+                    line = dict(width = 1))
     trace2 = Scatter(x = x,
                      y = y2,
-                     name = 'Wait time')
+                     name = 'Wait time',
+                    line = dict(width = 1))
     trace3 = Scatter(x = x,
                      y = y3,
                      name = 'Total',
-                     marker = dict(color = '#fb2e01'))
+                     marker = dict(color = '#fb2e01'),
+                    line = dict(width = 1))
     trace4 = Scatter(x = x,
                      y = y2/y1,
                      name = 'Waits/Pure',
-                     line = dict(dash = 'dash'),
+                     line = dict(dash = 'dash',
+                                 width = 1),
                      yaxis = 'y2'
                      )
     trace5 = Scatter(x = x,
@@ -435,33 +505,39 @@ def gen_line1(slider, xtype):
     
     trace = Scatter(x = x,
                     y = y,
-                    name = 'Regular')
+                    name = 'Regular',
+                    line = dict(width = 1))
     trace_cummean = Scatter(
             x = x,
             y = pd.Series(y).expanding().mean(),
             name = 'CA',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     trace_cummedian = Scatter(
             x = x,
             y = pd.Series(y).expanding().median(),
             name = 'CM',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     trace_cum1q = Scatter(
             x = x,
             y = pd.Series(y).expanding().quantile(0.25),
             name = 'C1Q',
             visible = False,
-            line = dict(dash = 'dash'))
+            line = dict(dash = 'dash',
+                        width = 1))
     trace_cum3q = Scatter(
             x = x,
             y = pd.Series(y).expanding().quantile(0.75),
             name = 'C3Q',
             visible = False,
-            line = dict(dash = 'dash'))    
+            line = dict(dash = 'dash',
+                        width = 1))    
     trace_MA = Scatter(x = x,
                        y = y_MA,
                        marker = {'color':'#fb2e01'},
-                        name = 'MA')
+                        name = 'MA',
+                        line = dict(width = 1))
     
     updatemenus = list([
         dict(type = 'buttons',
@@ -532,43 +608,51 @@ def gen_area1(xtype, relay, ma):
     trace1 = Scatter(
             x = x,
             y = y1,
-            name = 'Pure time')
+            name = 'Pure time',
+            line = dict(width = 1))
     trace1_cummean = Scatter(
             x = x,
             y = pd.Series(y1).expanding().mean(),
             name = 'Pure time',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     trace1_cummedian = Scatter(
             x = x,
             y = pd.Series(y1).expanding().median(),
             name = 'Pure time',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     trace1_ma = Scatter(
             x = x,
             y = pd.Series(y1).rolling(ma).mean(),
             name = 'Pure time',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     
     trace2 = Scatter(
             x = x,
             y = y2,
-            name = 'Wait time')
+            name = 'Wait time',
+            line = dict(width = 1))
     
     trace2_cummean = Scatter(
             x = x,
             y = pd.Series(y2).expanding().mean(),
             name = 'Wait time',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     trace2_cummedian = Scatter(
             x = x,
             y = pd.Series(y2).expanding().median(),
             name = 'Wait time',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
     trace2_ma = Scatter(
             x = x,
             y = pd.Series(y2).rolling(ma).mean(),
             name = 'Wait time',
-            visible = False)
+            visible = False,
+            line = dict(width = 1))
             
     updatemenus = list([
         dict(type = 'buttons',

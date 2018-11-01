@@ -55,6 +55,7 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #       moving average as inputbox (or buttons +1/-1), 
 #       X axis type checkbox
 #       limit number of visible data in all time-based plots (for example last 300 values)
+#       chart type for selected charts (line chart, boxplots)
 
 #   link to rmetrics collection
 
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
-        ad.scrape_all(savepics = False)
+        ad.scrape_all(savepics = True)
         proxy_pool = ad.proxy_pool
         proxy_pool.writetodb_poolmetrics(adcollection_poolmetrics, sum(ad.attempts))
         ad.writetodb(adcollection)
