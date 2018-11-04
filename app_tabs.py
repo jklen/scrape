@@ -25,7 +25,7 @@ adcollection_rmetrics = scrapedb['rmetrics']
 adcollection_poolmetrics = scrapedb['poolmetrics']
 
 app = dash.Dash(__name__)
-#app.config['suppress_callback_exceptions'] = True
+app.config['suppress_callback_exceptions'] = True
 styles = {
     'pre': {
         'border': 'thin lightgrey solid',
@@ -36,55 +36,43 @@ styles = {
 app.layout = html.Div([
     html.Div([
             html.H3('Column 1'),
-            html.Button(children = 'Button', id = 'but')
+            html.Button(children = 'Stop refresh', id = 'interval_button'),
+            html.Div(id = 'tab_prompts', style = {'display':'none'}, children = [
+                html.H5('Moving average'),
+                html.Button(id = 'ma_down', children = '<', n_clicks = 0, n_clicks_timestamp = -1),
+                dcc.Input(id = 'ma_input', value = '5', type = 'text', size = 3),
+                html.Button(id = 'ma_up', children = '>', n_clicks = 0, n_clicks_timestamp = -1),
+                html.H5('X axis type'),
+                html.Div([
+                    dcc.RadioItems(id = 'xaxis',
+                                options = [{'label': 'Number', 'value':'nr'},
+                                                  {'label': 'Date', 'value':'date'}
+                                                  ],
+                                value = 'date',
+                                labelStyle = {'display':'inline-block'})
+                ])
+            ]),
+            html.H5('testing', id = 't', style = {'display':'none'})
     ], className = 'two columns'),
+    html.Div([
     dcc.Tabs(id="tabs", children=[
-        dcc.Tab(label='Links overall', children=[
+        dcc.Tab(label='Links overall', value = 'links_overall', children=[
             html.Div([html.Div(id = 'overall_content'), 
                     dcc.Interval(
                             id = 'tab1_interval',
                             interval = 2000,
                             n_intervals = 0)])
         ]),
-        dcc.Tab(label='Links time window', children=[
+        dcc.Tab(label='Links time window', value = 'links_time', children=[
             html.Div([
                     html.Div([
                             html.H5('Times refreshed:')
-                    ], className = 'four columns'),
-                    html.Div([
-                            html.H5('Moving average:')
-                    ], className = 'four columns'),
-                    html.Div([
-                            html.H5('X axis')
                     ], className = 'four columns')
             ], className = 'row'),
             html.Div([
                 html.Div([
                         html.Div(id = 'times_refreshed')
-                ], className = 'two columns'),
-                html.Div([
-                    html.Button(children = 'Stop refresh', id = 'interval_button')        
-                        
-                ], className = 'two columns'),
-                html.Div([
-                    dcc.Slider(
-                            id = 'slider_MA_tab2',
-                            min = 2,
-                            max = 10,
-                            value = 5,
-                            step = 1,
-                            marks = {i:str(i) for i in range(2, 11)})
-                ], className = 'four columns'),
-                html.Div([
-                    dcc.RadioItems(id = 'xaxis',
-                            options = [{'label': 'Number', 'value':'nr'},
-                                              {'label': 'Date', 'value':'date'}
-                                              ],
-                            value = 'date',
-                            labelStyle = {'display':'inline-block'})
-                ], className = 'four columns')
-                
-                
+                ], className = 'two columns')                
             ], className = 'row'),
             html.Div([
                     html.Div([
@@ -119,7 +107,7 @@ app.layout = html.Div([
                     
             ], className = 'row')
         ]),
-        dcc.Tab(label='Pool', children=[
+        dcc.Tab(label='Pool', value = 'pool', children=[
             html.Div([
                     html.Div([
                             dcc.Graph(id = 'line_bandit_means')
@@ -140,17 +128,51 @@ app.layout = html.Div([
                     
             ], className = 'row')
         ]),
+        dcc.Tab(label = 'Proxies', value = 'proxies', children = [
+                html.Div(id = 'test_id')])
+    ])
+    
     ])
 ])
                     
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
+@app.callback(Output('ma_input', 'value'),
+              [Input('ma_up', 'n_clicks'),
+               Input('ma_up', 'n_clicks_timestamp'),
+               Input('ma_down', 'n_clicks'),
+               Input('ma_down', 'n_clicks_timestamp')],
+              [State('ma_input', 'value')])
+def ma_input(click_up, click_up_ts, click_down, click_down_ts, ma_state):
+    if click_up_ts > click_down_ts:
+        if click_down_ts == -1 and click_up_ts == 0:
+            to_return = str(6)
+        else:
+            to_return = str(int(ma_state) + 1)
+    elif click_up_ts < click_down_ts:
+        if click_down_ts == 0 and click_up_ts == -1:
+            to_return = str(4)
+        else:
+            to_return = str(int(ma_state) - 1) if int(ma_state) > 2 else str(2)
+    
+    return to_return
+
+@app.callback(Output('tab_prompts', 'style'),
+              [Input('tabs', 'value')])
+def tab_prompts(tab):
+    if tab in ['links_time', 'pool']:
+        to_return = {'display':'inline-block'}
+    else:
+        to_return = {'display':'none'}
+    return to_return
+
 @app.callback(Output('line_position_change', 'figure'),
               [Input('tab3_interval', 'n_intervals'),
                Input('xaxis', 'value'),
-               Input('slider_MA_tab2', 'value')])
+               Input('ma_input', 'value')])
 def line_position_change(interval, xtype, ma):
+    ma = int(ma)
     x = [r['timestamp_pool_update'] for r in adcollection_poolmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
@@ -164,13 +186,15 @@ def line_position_change(interval, xtype, ma):
                     y = y1,
                     name = 'Position change',
                     marker = dict(color = '#92b4f2'),
-                    line = dict( width = 1))
+                    line = dict( width = 1),
+                    mode = 'lines')
     trace2 = Scatter(x = x,
                      y = y2,
                      name = 'MA',
                      marker = dict(
                              color = '#fb2e01'),
-                    line = dict(width = 1.5))
+                    line = dict(width = 1.5),
+                    mode = 'lines')
                              
     trace3 = Scatter(x = x,
                      y = y3,
@@ -179,7 +203,8 @@ def line_position_change(interval, xtype, ma):
                              color = '#0d3592'),
                     line = dict(dash = 'dash',
                                 width = 1.5),
-                    yaxis = 'y2')
+                    yaxis = 'y2',
+                    mode = 'lines')
     
     layout = dict(
             title = 'Proxies position change',
@@ -216,8 +241,9 @@ def line_position_change(interval, xtype, ma):
     return Figure(data = [trace, trace2, trace3], layout = layout)
 
 @app.callback(Output('bar_bandit_chosennr', 'figure'),
-              [Input('tab3_interval', 'n_intervals')])
-def bar_bandit_chosennr(interval):
+              [Input('tab3_interval', 'n_intervals'),
+               Input('xaxis', 'value')])
+def bar_bandit_chosennr(interval, val):
     counted_vals = Counter([b['choosen_bandit'] for b in adcollection_poolmetrics.find()])
     counted_vals_sorted = sorted(counted_vals.items(), key = itemgetter(0))
     keys = [i[0] for i in counted_vals_sorted]
@@ -268,13 +294,16 @@ def line_attempts(xtype, interval):
     trace = Scatter(x = x,
                     y = y1,
                     name = 'Regular',
-                    line = dict(width = 1))
+                    line = dict(width = 1),
+                    marker = {'color':'#92b4f2'},
+                    mode = 'lines')
     trace2 = Scatter(x = x,
                      y = y2,
                      name = 'CA',
                      marker = dict(
                              color = '#fb2e01'),
-                    line = dict(width = 1.5))
+                    line = dict(width = 1.5),
+                    mode = 'lines')
     
     layout = dict(
             title = 'Number of attempts per link',
@@ -324,35 +353,42 @@ def line_pure_wait_sum(xtype, interval):
     trace = Scatter(x = x,
                     y = y1,
                     name = 'Pure time',
-                    line = dict(width = 1))
+                    line = dict(width = 1),
+                    marker = {'color':'#92b4f2'},
+                    mode = 'lines')
     trace2 = Scatter(x = x,
                      y = y2,
                      name = 'Wait time',
-                    line = dict(width = 1))
+                    line = dict(width = 1),
+                    mode = 'lines')
     trace3 = Scatter(x = x,
                      y = y3,
                      name = 'Total',
                      marker = dict(color = '#fb2e01'),
-                    line = dict(width = 1))
+                    line = dict(width = 1),
+                    mode = 'lines')
     trace4 = Scatter(x = x,
                      y = y2/y1,
                      name = 'Waits/Pure',
                      line = dict(dash = 'dash',
                                  width = 1),
-                     yaxis = 'y2'
+                     yaxis = 'y2',
+                     mode = 'lines'
                      )
     trace5 = Scatter(x = x,
                      y = y_trace5,
                      line = dict(dash = 'dash'),
                      marker = dict(color = '#d7dbdd'),
                     yaxis = 'y2',
-                    showlegend = False)
+                    showlegend = False,
+                    mode = 'lines')
     trace6 = Scatter(x = x,
                      y = y_trace6,
                      line = dict(dash = 'dash'),
                      marker = dict(color = '#d7dbdd'),
                     yaxis = 'y2',
-                    showlegend = False)
+                    showlegend = False,
+                    mode = 'lines')
                      
     updatemenus = list([
         dict(type = 'buttons',
@@ -426,7 +462,7 @@ def update_button(clicks):
         elif clicks % 2 == 0:
             return 'Stop refresh'
 
-@app.callback(Output('tab2_interval', 'interval'), [Input('interval_button', 'n_clicks')])
+@app.callback(Output('tab1_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval(clicks):
     #if clicks != None:
         if clicks % 2 == 1:
@@ -434,8 +470,16 @@ def stop_interval(clicks):
         elif clicks % 2 == 0:
             return 2000
 
-@app.callback(Output('tab3_interval', 'interval'), [Input('interval_button', 'n_clicks')])
+@app.callback(Output('tab2_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval2(clicks):
+    #if clicks != None:
+        if clicks % 2 == 1:
+            return 600000
+        elif clicks % 2 == 0:
+            return 2000
+
+@app.callback(Output('tab3_interval', 'interval'), [Input('interval_button', 'n_clicks')])
+def stop_interval3(clicks):
     #if clicks != None:
         if clicks % 2 == 1:
             return 600000
@@ -473,13 +517,14 @@ def content_links_overall(selected_tab, interval):
 def times_refreshed(interval):
     return html.H5(interval)
 
-@app.callback(Output('line_time', 'figure'), [Input('tabs', 'value'), 
+@app.callback(Output('line_time', 'figure'),
+              [Input('tabs', 'value'), 
               Input('tab2_interval', 'n_intervals'), 
-              Input('slider_MA_tab2', 'value'), 
+              Input('ma_input', 'value'), 
               Input('interval_button', 'n_clicks'),
               Input('xaxis', 'value')])
-def content_links_time_window(selected_tab, interval, slider, n_clicks, xaxis):
-    to_return = gen_line1(slider, xaxis)
+def content_links_time_window(selected_tab, interval, ma, n_clicks, xaxis):
+    to_return = gen_line1(int(ma), xaxis)
     
     return to_return
 
@@ -489,9 +534,9 @@ def content_links_time_window(selected_tab, interval, slider, n_clicks, xaxis):
                Input('interval_button', 'n_clicks'),
                Input('xaxis', 'value'),
                Input('line_time', 'relayoutData'),
-               Input('slider_MA_tab2', 'value')])
+               Input('ma_input', 'value')])
 def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay, ma):
-    to_return = gen_area1(xaxis, relay, ma)       
+    to_return = gen_area1(xaxis, relay, int(ma))       
     
     return to_return
     
@@ -506,38 +551,45 @@ def gen_line1(slider, xtype):
     trace = Scatter(x = x,
                     y = y,
                     name = 'Regular',
-                    line = dict(width = 1))
+                    line = dict(width = 1),
+                    marker = {'color':'#92b4f2'},
+                    mode = 'lines')
     trace_cummean = Scatter(
             x = x,
             y = pd.Series(y).expanding().mean(),
             name = 'CA',
             visible = False,
-            line = dict(width = 1))
+            line = dict(width = 1),
+            mode = 'lines')
     trace_cummedian = Scatter(
             x = x,
             y = pd.Series(y).expanding().median(),
             name = 'CM',
             visible = False,
-            line = dict(width = 1))
+            line = dict(width = 1),
+            mode = 'lines')
     trace_cum1q = Scatter(
             x = x,
             y = pd.Series(y).expanding().quantile(0.25),
             name = 'C1Q',
             visible = False,
             line = dict(dash = 'dash',
-                        width = 1))
+                        width = 1),
+            mode = 'lines')
     trace_cum3q = Scatter(
             x = x,
             y = pd.Series(y).expanding().quantile(0.75),
             name = 'C3Q',
             visible = False,
             line = dict(dash = 'dash',
-                        width = 1))    
+                        width = 1),
+            mode = 'lines')    
     trace_MA = Scatter(x = x,
                        y = y_MA,
                        marker = {'color':'#fb2e01'},
                         name = 'MA',
-                        line = dict(width = 1))
+                        line = dict(width = 1),
+                        mode = 'lines')
     
     updatemenus = list([
         dict(type = 'buttons',
@@ -609,50 +661,64 @@ def gen_area1(xtype, relay, ma):
             x = x,
             y = y1,
             name = 'Pure time',
-            line = dict(width = 1))
+            line = dict(width = 1),
+            marker = {'color':'#92b4f2'},
+            mode = 'lines')
     trace1_cummean = Scatter(
             x = x,
             y = pd.Series(y1).expanding().mean(),
             name = 'Pure time',
             visible = False,
-            line = dict(width = 1))
+            line = dict(width = 1),
+            marker = {'color':'#92b4f2'},
+            mode = 'lines')
     trace1_cummedian = Scatter(
             x = x,
             y = pd.Series(y1).expanding().median(),
             name = 'Pure time',
             visible = False,
-            line = dict(width = 1))
+            line = dict(width = 1),
+            marker = {'color':'#92b4f2'},
+            mode = 'lines')
     trace1_ma = Scatter(
             x = x,
             y = pd.Series(y1).rolling(ma).mean(),
-            name = 'Pure time',
-            visible = False,
-            line = dict(width = 1))
+            name = 'Pure time MA',
+            visible = True,
+            line = dict(width = 1.5, dash = 'dash'),
+            marker = dict(color = '#0d3592'),
+            mode = 'lines')
     
     trace2 = Scatter(
             x = x,
             y = y2,
             name = 'Wait time',
-            line = dict(width = 1))
+            line = dict(width = 1),
+            marker = dict(color = '#ffb653'),
+            mode = 'lines')
     
     trace2_cummean = Scatter(
             x = x,
             y = pd.Series(y2).expanding().mean(),
             name = 'Wait time',
             visible = False,
-            line = dict(width = 1))
+            line = dict(width = 1),
+            mode = 'lines')
     trace2_cummedian = Scatter(
             x = x,
             y = pd.Series(y2).expanding().median(),
             name = 'Wait time',
             visible = False,
-            line = dict(width = 1))
+            line = dict(width = 1),
+            mode = 'lines')
     trace2_ma = Scatter(
             x = x,
             y = pd.Series(y2).rolling(ma).mean(),
-            name = 'Wait time',
-            visible = False,
-            line = dict(width = 1))
+            name = 'Wait time MA',
+            visible = True,
+            line = dict(width = 1.5, dash = 'dash'),
+            marker = dict(color = '#e46406'),
+            mode = 'lines')
             
     updatemenus = list([
         dict(type = 'buttons',
@@ -666,11 +732,6 @@ def gen_area1(xtype, relay, ma):
                 dict(label = 'CM',
                      method = 'update',
                      args = [{'visible':[False, False, True, False, False, False, True, False]},
-                             {'title':'Time to process link - cumulative median'}]
-                ),
-                dict(label = 'MA',
-                     method = 'update',
-                     args = [{'visible':[False, False, False, True, False, False, False, True]},
                              {'title':'Time to process link - cumulative median'}]
                 ),
                 dict(label = 'Reset',

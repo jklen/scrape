@@ -51,9 +51,6 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #       proxy map (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
 
 #   one column with prompts:
-#       button to start/stop refresh, 
-#       moving average as inputbox (or buttons +1/-1), 
-#       X axis type checkbox
 #       limit number of visible data in all time-based plots (for example last 300 values)
 #       chart type for selected charts (line chart, boxplots)
 
