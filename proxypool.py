@@ -11,6 +11,7 @@ import numpy as np
 from myscraper import wait
 import datetime
 import pandas as pd
+from bson.objectid import ObjectId
 
 def proxy_pool_test(proxy_pool, browser_list, requests_nr = 100):
     url = 'https://httpbin.org/ip'
@@ -29,17 +30,22 @@ def proxy_pool_test(proxy_pool, browser_list, requests_nr = 100):
     return proxy_pool
 
 class proxyPool:
-    def __init__(self, proxy_list, proxies_in_bandit, eps):
+    def __init__(self, proxy_list, proxies_in_bandit, eps, dbcollection_proxies):
         self.proxies_in_bandit = proxies_in_bandit # nr of proxies in bandit
         self.proxy_for_bandits = [proxy_list[i:i + proxies_in_bandit] for i in range(0, len(proxy_list), proxies_in_bandit)]
         self.nr_of_bandits = len(self.proxy_for_bandits)
-        self.all_proxies = {proxy:{'response_times':[], 'mean':15.0, 'position':[i], 'position_change':[]} for i, proxy in enumerate(proxy_list)}
+        self.all_proxies = {proxy:{'response_times':[], 'response_timestamp':[],'mean':15.0, 'position':[i], 'position_change':[], 'bandit':[j for j, lst in enumerate(self.proxy_for_bandits) if proxy in lst]} for i, proxy in enumerate(proxy_list)}
         #self.bandits = {bandit:15 for bandit in range(self.nr_of_bandits)}
         self.bandits = [i for i in range(self.nr_of_bandits)]
         self.eps = eps
         self.bandit_means = []
         self.update_times = []
         self.bandits_chosennr = []
+        self.chosed_proxies = []
+        
+        # initial all proxies info to db - change to have '_id':proxy each dictionary
+        all_proxies_initial = [self.all_proxies[proxy] for proxy in list(self.all_proxies.keys())]
+        x = dbcollection_proxies.insert_many(all_proxies_initial)
         
     def choose_proxy(self):
         p = random.random()
@@ -57,9 +63,13 @@ class proxyPool:
         
     def update(self, proxy, response_time, window = 10):
         print('Response time %d' % response_time)
-        self.update_times.append(datetime.datetime.now())
+        self.chosed_proxies.append(proxy)
+        t = datetime.datetime.now()
+        self.update_times.append(t)
         # sorting and assigning proxies
         self.all_proxies[proxy]['response_times'].append(response_time)
+        self.all_proxies[proxy]['response_timestamp'].append(t)
+        self.all_proxies[proxy]['bandit'].append(self.bandits_chosennr[-1])
         self.all_proxies[proxy]['mean'] = np.mean(self.all_proxies[proxy]['response_times'][-window:]) # rolling window of proxies response times
         self.ordered_proxies = sorted(self.all_proxies, key = lambda k:self.all_proxies[k]['mean'])
         self.proxy_for_bandits = [self.ordered_proxies[i:i + self.proxies_in_bandit] for i in range(0, len(self.ordered_proxies), self.proxies_in_bandit)]
@@ -91,4 +101,22 @@ class proxyPool:
             print('Not able to create list to write bandits metrics to db. ' + str(e))
         else:
             x = dbcollection.insert_many(to_write)
+            
+    def writetodb_proxies(self, dbcollection, nr_of_updates):
+        proxies = self.chosed_proxies[-nr_of_updates]
+        for proxy in proxies:
+            
     
+#   proxy:
+#       mean . .
+#       position [x] .
+#       position change [] .
+#       update_timestamp - NO, can be taken from timestamp_pool_update in poolmetrics
+#       response times[] .
+#       response_timestamp [] .
+#       current bandit [x]
+#       country
+#       scraped from
+            
+#   adcollection_poolmetrics.update_one({'_id':ObjectId('5bdb3b8a430724117cbff243')},{'$push':{'bandit_means':6}})
+#   access/update array in nested dictionary

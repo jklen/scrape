@@ -15,6 +15,7 @@ scrapedb = myclient['scrapedb']
 adcollection = scrapedb['ads']
 adcollection_rmetrics = scrapedb['rmetrics']
 adcollection_poolmetrics = scrapedb['poolmetrics']
+adcollection_proxies = scrapedb['proxies']
 
 # explore/exploit proxies
 
@@ -35,6 +36,8 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #       proxy performance on map by countries, webs
 
 #   minimum example af axes reset bug
+#   initial state of inputbox and buttons bug
+#   preserving state of custom chart buttons, zoom when interval present
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
@@ -43,15 +46,14 @@ adcollection_poolmetrics = scrapedb['poolmetrics']
 #   when I change a property with one callback will it trigger another?
 #   limit amount of data and put it to hidden div, only few charts will query all data
 
-#   bandits
-#       line chart with proxies positon change as abs(positon_change)/nr_of_proxies
 #   proxies
-#       separate plot - boxplot of means of all bandits proxies https://community.plot.ly/t/box-plots-manually-supply-median-and-quartiles-performance-for-alrge-sample-sizes/2459/3
-#       click on box -> proxies in clicked bandit all response times, separately window responses
+#       1. bandits overall boxplots, 2. click on bandit -> all his proxies boxplots (custom button 'overall'/'window')
+#       3. click on proxy boxplot -> line plot with proxy times (date/number x axis) 4. data for proxy including its
+#           attributes in table below
 #       proxy map (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
 
 #   one column with prompts:
-#       limit number of visible data in all time-based plots (for example last 300 values)
+#       data filter (calculations are from whole data), for example last 200 values
 #       chart type for selected charts (line chart, boxplots)
 
 #   link to rmetrics collection
