@@ -43,8 +43,10 @@ class proxyPool:
         self.bandits_chosennr = []
         self.chosed_proxies = []
         
-        # initial all proxies info to db - change to have '_id':proxy each dictionary
+        # initial all proxies info to db
         all_proxies_initial = [self.all_proxies[proxy] for proxy in list(self.all_proxies.keys())]
+        for i in range(0, len(self.all_proxies)):
+            all_proxies_initial[i]['_id'] = list(self.all_proxies.keys())[i]
         x = dbcollection_proxies.insert_many(all_proxies_initial)
         
     def choose_proxy(self):
@@ -103,9 +105,15 @@ class proxyPool:
             x = dbcollection.insert_many(to_write)
             
     def writetodb_proxies(self, dbcollection, nr_of_updates):
-        proxies = self.chosed_proxies[-nr_of_updates]
+        proxies = self.chosed_proxies[-nr_of_updates:]
         for proxy in proxies:
-            
+            print(proxy)
+            dbcollection.update_one({'_id':proxy}, {'$push':{'position':self.all_proxies[proxy]['position'][-1]}})
+            dbcollection.update_one({'_id':proxy}, {'$push':{'position_change':self.all_proxies[proxy]['position_change'][-1]}})
+            dbcollection.update_one({'_id':proxy}, {'$push':{'response_times':self.all_proxies[proxy]['response_times'][-1]}})
+            dbcollection.update_one({'_id':proxy}, {'$push':{'response_timestamp':self.all_proxies[proxy]['response_timestamp'][-1]}})
+            dbcollection.update_one({'_id':proxy}, {'$push':{'bandit':self.all_proxies[proxy]['bandit'][-1]}})
+            dbcollection.update_one({'_id':proxy}, {'$set':{'mean':self.all_proxies[proxy]['mean']}})
     
 #   proxy:
 #       mean . .

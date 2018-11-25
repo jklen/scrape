@@ -200,8 +200,9 @@ class TopRealityAd:
         if 'Poschodie' in self.properties:
             self.properties['Počet poschodí'] = int(self.properties['Poschodie'].split('/')[1].strip())
             self.properties['Poschodie'] = int(self.properties['Poschodie'].split('/')[0].strip())
-        self.properties['Úžitková plocha v m2'] = float(self.properties['Úžitková plocha'].split(' ')[0])
-        del(self.properties['Úžitková plocha'])
+        if 'Úžitková plocha' in self.properties:
+            self.properties['Úžitková plocha v m2'] = float(self.properties['Úžitková plocha'].split(' ')[0])
+            del(self.properties['Úžitková plocha'])
         self.properties['Link s id'] = self.properties.pop('empty1') if  'empty1' in self.properties else self.properties.pop('empty0')
         self.properties['Aktualizácia'] = datetime.datetime.strptime(self.properties['Aktualizácia'], '%d.%m.%Y %H:%M:%S')
         if 'empty0' in self.properties:
