@@ -58,19 +58,21 @@ adcollection_proxies = scrapedb['proxies']
 
 #   link to rmetrics collection
 
+#   bug ad.soup.find('div', {'class':'gallery'}).ul might be NoneType => error, when pictures not present, in scrape_gallery_links
+#   https://www.topreality.sk/1-izbovy-byt-v-blizkosti-lesa-r6688537.html
 if __name__ == '__main__':
     
     browser_list = scrape_useragents()
     proxy_list = scrape_proxies()
     proxy_pool = proxyPool(proxy_list, 10, 0.4, adcollection_proxies)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 5)
+    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 10)
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
         ad.scrape_all(savepics = False)
         proxy_pool = ad.proxy_pool
         proxy_pool.writetodb_poolmetrics(adcollection_poolmetrics, sum(ad.attempts))
-        proxy_pool.writetodb_proxies(adcollection_proxies, sum(ad.attempts))
+        proxy_pool.writetodb_proxies(adcollection_proxies)
         ad.writetodb(adcollection)
         ad.writetodb_rmetrics(adcollection_rmetrics)

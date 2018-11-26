@@ -42,13 +42,7 @@ class proxyPool:
         self.update_times = []
         self.bandits_chosennr = []
         self.chosed_proxies = []
-        
-        # initial all proxies info to db
-        all_proxies_initial = [self.all_proxies[proxy] for proxy in list(self.all_proxies.keys())]
-        for i in range(0, len(self.all_proxies)):
-            all_proxies_initial[i]['_id'] = list(self.all_proxies.keys())[i]
-        x = dbcollection_proxies.insert_many(all_proxies_initial)
-        
+                
     def choose_proxy(self):
         p = random.random()
         if p < self.eps:
@@ -71,7 +65,7 @@ class proxyPool:
         # sorting and assigning proxies
         self.all_proxies[proxy]['response_times'].append(response_time)
         self.all_proxies[proxy]['response_timestamp'].append(t)
-        self.all_proxies[proxy]['bandit'].append(self.bandits_chosennr[-1])
+        #self.all_proxies[proxy]['bandit'].append(self.bandits_chosennr[-1])
         self.all_proxies[proxy]['mean'] = np.mean(self.all_proxies[proxy]['response_times'][-window:]) # rolling window of proxies response times
         self.ordered_proxies = sorted(self.all_proxies, key = lambda k:self.all_proxies[k]['mean'])
         self.proxy_for_bandits = [self.ordered_proxies[i:i + self.proxies_in_bandit] for i in range(0, len(self.ordered_proxies), self.proxies_in_bandit)]
@@ -84,9 +78,10 @@ class proxyPool:
             bandit_means.append(np.mean([i for i in prmeans_list if i != None]))
         self.bandit_means.append(bandit_means)
         print(('bandits means', bandit_means))
-        # proxies position and position difference from previous request after sorting
+        # proxies position and position difference from previous request after sorting, and bandit
         for i, proxy in enumerate(self.ordered_proxies):
             self.all_proxies[proxy]['position'].append(i)
+            self.all_proxies[proxy]['bandit'].append([j for j, lst in enumerate(self.proxy_for_bandits) if proxy in lst][0])
             if len(self.all_proxies[proxy]['position']) >= 2:
                 d = i - self.all_proxies[proxy]['position'][-2]
                 self.all_proxies[proxy]['position_change'].append(d)
@@ -104,16 +99,17 @@ class proxyPool:
         else:
             x = dbcollection.insert_many(to_write)
             
-    def writetodb_proxies(self, dbcollection, nr_of_updates):
-        proxies = self.chosed_proxies[-nr_of_updates:]
-        for proxy in proxies:
-            print(proxy)
-            dbcollection.update_one({'_id':proxy}, {'$push':{'position':self.all_proxies[proxy]['position'][-1]}})
-            dbcollection.update_one({'_id':proxy}, {'$push':{'position_change':self.all_proxies[proxy]['position_change'][-1]}})
-            dbcollection.update_one({'_id':proxy}, {'$push':{'response_times':self.all_proxies[proxy]['response_times'][-1]}})
-            dbcollection.update_one({'_id':proxy}, {'$push':{'response_timestamp':self.all_proxies[proxy]['response_timestamp'][-1]}})
-            dbcollection.update_one({'_id':proxy}, {'$push':{'bandit':self.all_proxies[proxy]['bandit'][-1]}})
-            dbcollection.update_one({'_id':proxy}, {'$set':{'mean':self.all_proxies[proxy]['mean']}})
+    def writetodb_proxies(self, dbcollection):
+        
+        if dbcollection.count_documents({}) > 0:
+            dbcollection.delete_many({})
+        
+        all_proxies_todb = [self.all_proxies[proxy] for proxy in list(self.all_proxies.keys())]
+        
+        for i in range(0, len(self.all_proxies)):
+            all_proxies_todb[i]['_id'] = list(self.all_proxies.keys())[i]
+        x = dbcollection.insert_many(all_proxies_todb)
+        
     
 #   proxy:
 #       mean . .
@@ -125,6 +121,3 @@ class proxyPool:
 #       current bandit [x]
 #       country
 #       scraped from
-            
-#   adcollection_poolmetrics.update_one({'_id':ObjectId('5bdb3b8a430724117cbff243')},{'$push':{'bandit_means':6}})
-#   access/update array in nested dictionary
