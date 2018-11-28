@@ -101,54 +101,59 @@ class TopRealityAd:
     # put here check if picture is alrady downloaded
     def scrape_gallerylinks(self, savepics = True): # set timeout to request
         self.gallerylinks.append('https://topreality.sk' + self.soup.find('div', {'class':'gallery'}).a['href'])
-
-        for li in self.soup.find('div', {'class':'gallery'}).ul.find_all('li'):
-            self.gallerylinks.append('https://topreality.sk/' + li.a['href'])
-        print('Number of pictures: ' + str(len(self.gallerylinks)))
-        if savepics:
-            if 'empty1' in self.properties:
-                ad_id = re.search('id(\d*)', self.properties['empty1'])[1]
-            else:
-                ad_id = re.search('id(\d*)', self.properties['empty0'])[1] # cena dohodou
-            self.gallery_dir = 'data/pics/topreality/' + ad_id
-            gallery_dir = self.gallery_dir
-            
-            if not os.path.exists(gallery_dir):
-                os.makedirs(gallery_dir)
-                                    
-            for i, pic_link in enumerate(self.gallerylinks):
-                success = False
-                attempts = 0
-                time_wait = []
-                r_time_start = time.time()
-                while success == False:
-                    time_wait.append(wait())
-                    proxy = self.proxy_pool.choose_proxy()
-                    useragent = random.choice(self.useragents_list)
-                    try:
-                        response = requests.get(pic_link, stream = True, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
-                        
-                    except:
-                        attempts += 1
-                        self.proxy_pool.update(proxy, 30)
-                        #pass
-                    else:
-                        attempts += 1
-                        r_time_end = time.time()
-                        self.time_success.append(r_time_end - r_time_start)
-                        self.attempts.append(attempts)
-                        self.waits.append(np.sum(time_wait))
-                        self.timestamps.append(datetime.datetime.now())
-                        
-                        self.proxy_pool.update(proxy, response.elapsed.total_seconds())
-                        with open(gallery_dir + '/' + 'img' + str(i) + '.jpg', 'wb') as out_file:
-                            try:
-                                shutil.copyfileobj(response.raw, out_file)
-                            except:
-                                print('Error saving picture')
-                            else:
-                                print('Picture %d from %d saved successfuly, attempts: %d' %(i + 1, len(self.gallerylinks), attempts))
-                                success = True
+        
+        try:
+            lis = self.soup.find('div', {'class':'gallery'}).ul.find_all('li')
+        except:
+            print('No gallery pictures are present')
+        else:
+            for li in lis:
+                self.gallerylinks.append('https://topreality.sk/' + li.a['href'])
+            print('Number of pictures: ' + str(len(self.gallerylinks)))
+            if savepics:
+                if 'empty1' in self.properties:
+                    ad_id = re.search('id(\d*)', self.properties['empty1'])[1]
+                else:
+                    ad_id = re.search('id(\d*)', self.properties['empty0'])[1] # cena dohodou
+                self.gallery_dir = 'data/pics/topreality/' + ad_id
+                gallery_dir = self.gallery_dir
+                
+                if not os.path.exists(gallery_dir):
+                    os.makedirs(gallery_dir)
+                                        
+                for i, pic_link in enumerate(self.gallerylinks):
+                    success = False
+                    attempts = 0
+                    time_wait = []
+                    r_time_start = time.time()
+                    while success == False:
+                        time_wait.append(wait())
+                        proxy = self.proxy_pool.choose_proxy()
+                        useragent = random.choice(self.useragents_list)
+                        try:
+                            response = requests.get(pic_link, stream = True, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
+                            
+                        except:
+                            attempts += 1
+                            self.proxy_pool.update(proxy, 30)
+                            #pass
+                        else:
+                            attempts += 1
+                            r_time_end = time.time()
+                            self.time_success.append(r_time_end - r_time_start)
+                            self.attempts.append(attempts)
+                            self.waits.append(np.sum(time_wait))
+                            self.timestamps.append(datetime.datetime.now())
+                            
+                            self.proxy_pool.update(proxy, response.elapsed.total_seconds())
+                            with open(gallery_dir + '/' + 'img' + str(i) + '.jpg', 'wb') as out_file:
+                                try:
+                                    shutil.copyfileobj(response.raw, out_file)
+                                except:
+                                    print('Error saving picture')
+                                else:
+                                    print('Picture %d from %d saved successfuly, attempts: %d' %(i + 1, len(self.gallerylinks), attempts))
+                                    success = True
                 
     
     def scrape_seller(self):        
