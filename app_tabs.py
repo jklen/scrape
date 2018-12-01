@@ -8,7 +8,7 @@ Created on Tue Sep 18 20:59:57 2018
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from plotly.graph_objs import Bar, Figure, Scatter, Line, Marker, Layout, Histogram, Pie, Legend
+from plotly.graph_objs import Bar, Figure, Scatter, Line, Marker, Layout, Histogram, Pie, Legend, Box
 import plotly.figure_factory as ff
 from dash.dependencies import Input, Output, Event, State
 import pymongo
@@ -55,88 +55,116 @@ app.layout = html.Div([
             html.H5('testing', id = 't', style = {'display':'none'})
     ], className = 'two columns'),
     html.Div([
-    dcc.Tabs(id="tabs", children=[
-        dcc.Tab(label='Links overall', value = 'links_overall', children=[
-            html.Div([html.Div(id = 'overall_content'), 
-                    dcc.Interval(
-                            id = 'tab1_interval',
-                            interval = 2000,
-                            n_intervals = 0)])
-        ]),
-        dcc.Tab(label='Links time window', value = 'links_time', children=[
-            html.Div([
-                    html.Div([
-                            html.H5('Times refreshed:')
-                    ], className = 'four columns')
-            ], className = 'row'),
-            html.Div([
+        dcc.Tabs(id="tabs", children=[
+            dcc.Tab(label='Links overall', value = 'links_overall', children=[
+                html.Div([html.Div(id = 'overall_content'), 
+                        dcc.Interval(
+                                id = 'tab1_interval',
+                                interval = 2000,
+                                n_intervals = 0)])
+            ]),
+            dcc.Tab(label='Links time window', value = 'links_time', children=[
                 html.Div([
-                        html.Div(id = 'times_refreshed')
-                ], className = 'two columns')                
-            ], className = 'row'),
-            html.Div([
+                        html.Div([
+                                html.H5('Times refreshed:')
+                        ], className = 'four columns')
+                ], className = 'row'),
+                html.Div([
                     html.Div([
-                        dcc.Graph(id = 'line_time')
-                    ], className = 'six columns'),
-                    html.Div([
-                        dcc.Graph(id = 'area_time')
-                    ], className = 'six columns'),
-                    dcc.Interval(
-                            id = 'tab2_interval',
-                            interval = 2000,
-                            n_intervals = 0)
-            ], className = 'row'),
-            html.Div([
-                    html.Div([
-                        dcc.Graph(id = 'line_attempts')
-                    ], className = 'six columns'),
-                    html.Div([
-                        dcc.Graph(id = 'line_pure_wait_sum')
-                    ], className = 'six columns')
-                    
-                    
-            ], className = 'row'),
-            html.Div([
-                    html.Div([
-                        html.Pre(id = 'relayed data', style = styles['pre'])
-                    ], className = 'six columns'),
-                    html.Div([
-                        html.Pre(id = 'relayed data status', style = styles['pre'])        
-                    ], className = 'six columns')
-                    
-                    
-            ], className = 'row')
-        ]),
-        dcc.Tab(label='Pool', value = 'pool', children=[
-            html.Div([
-                    html.Div([
-                            dcc.Graph(id = 'line_bandit_means')
-                    ], className = 'six columns'),
-                    html.Div([
-                            dcc.Graph(id = 'bar_bandit_chosennr')
-                    ], className = 'six columns'),
-                    dcc.Interval(
-                            id = 'tab3_interval',
-                            interval = 2000,
-                            n_intervals = 0)
-                    
-            ], className = 'row'),
-            html.Div([
-                    html.Div([
-                            dcc.Graph(id = 'line_position_change')                            
-                    ], className = 'twelve columns')
-                    
-            ], className = 'row')
-        ]),
-        dcc.Tab(label = 'Proxies', value = 'proxies', children = [
-                html.Div(id = 'test_id')])
-    ])
+                            html.Div(id = 'times_refreshed')
+                    ], className = 'two columns')                
+                ], className = 'row'),
+                html.Div([
+                        html.Div([
+                            dcc.Graph(id = 'line_time')
+                        ], className = 'six columns'),
+                        html.Div([
+                            dcc.Graph(id = 'area_time')
+                        ], className = 'six columns'),
+                        dcc.Interval(
+                                id = 'tab2_interval',
+                                interval = 2000,
+                                n_intervals = 0)
+                ], className = 'row'),
+                html.Div([
+                        html.Div([
+                            dcc.Graph(id = 'line_attempts')
+                        ], className = 'six columns'),
+                        html.Div([
+                            dcc.Graph(id = 'line_pure_wait_sum')
+                        ], className = 'six columns')
+                        
+                        
+                ], className = 'row'),
+                html.Div([
+                        html.Div([
+                            html.Pre(id = 'relayed data', style = styles['pre'])
+                        ], className = 'six columns'),
+                        html.Div([
+                            html.Pre(id = 'relayed data status', style = styles['pre'])        
+                        ], className = 'six columns')
+                        
+                        
+                ], className = 'row')
+            ]),
+            dcc.Tab(label='Pool', value = 'pool', children=[
+                html.Div([
+                        html.Div([
+                                dcc.Graph(id = 'line_bandit_means')
+                        ], className = 'six columns'),
+                        html.Div([
+                                dcc.Graph(id = 'bar_bandit_chosennr')
+                        ], className = 'six columns'),
+                        dcc.Interval(
+                                id = 'tab3_interval',
+                                interval = 2000,
+                                n_intervals = 0)
+                        
+                ], className = 'row'),
+                html.Div([
+                        html.Div([
+                                dcc.Graph(id = 'line_position_change')                            
+                        ], className = 'twelve columns')
+                        
+                ], className = 'row')
+            ]),
+            dcc.Tab(label = 'Proxies', value = 'proxies', children = [
+                html.Div([
+                        html.Div([
+                                dcc.Graph(id = 'boxplot_bandits')
+                        ], className = 'six columns'),
+                        html.Div([
+                                dcc.Graph(id = 'boxplot_proxies')
+                        ], className = 'six columns'),
+                        dcc.Interval(
+                                id = 'tab4_interval',
+                                interval = 2000,
+                                n_intervals = 0)
+                        
+                ], className = 'row')
+            ])
+        ])
     
     ])
 ])
                     
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+@app.callback(Output('boxplot_bandits', 'figure'),
+              [Input('tab4_interval', 'n_intervals')])
+def boxplot_bandits(interval):
+    bandit_data = list(adcollection_poolmetrics.find().limit(1).sort([('$natural',-1)]))[0]
+    bandit_data = [[bandit_data['bandit_mins'][i], bandit_data['bandit_q1s'][i], bandit_data['bandit_q1s'][i], bandit_data['bandit_medians'][i], bandit_data['bandit_q3s'][i], bandit_data['bandit_q3s'][i], bandit_data['bandit_maxs'][i]] for i in range(0, len(bandit_data['bandit_means']))]
+    
+    data = [Box(y = j, name = str(i)) for i, j in enumerate(bandit_data)]
+    
+    layout= dict(
+            title = 'Bandits proxies means',
+            xaxis = dict(title = 'Bandit'),
+            yaxis = dict(title = 'Proxies means [s]'))
+    
+    return Figure(data = data, layout = layout)
 
 @app.callback(Output('ma_input', 'value'),
               [Input('ma_up', 'n_clicks'),
@@ -480,6 +508,14 @@ def stop_interval2(clicks):
 
 @app.callback(Output('tab3_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval3(clicks):
+    #if clicks != None:
+        if clicks % 2 == 1:
+            return 600000
+        elif clicks % 2 == 0:
+            return 2000
+
+@app.callback(Output('tab4_interval', 'interval'), [Input('interval_button', 'n_clicks')])
+def stop_interval4(clicks):
     #if clicks != None:
         if clicks % 2 == 1:
             return 600000

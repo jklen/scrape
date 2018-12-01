@@ -62,7 +62,7 @@ if __name__ == '__main__':
     
     browser_list = scrape_useragents()
     proxy_list = scrape_proxies()
-    proxy_pool = proxyPool(proxy_list, 10, 0.4, adcollection_proxies)
+    proxy_pool = proxyPool(proxy_list, 10, 0.4)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
     links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 5)
     for i, link in enumerate(links):

@@ -30,7 +30,7 @@ def proxy_pool_test(proxy_pool, browser_list, requests_nr = 100):
     return proxy_pool
 
 class proxyPool:
-    def __init__(self, proxy_list, proxies_in_bandit, eps, dbcollection_proxies):
+    def __init__(self, proxy_list, proxies_in_bandit, eps):
         self.proxies_in_bandit = proxies_in_bandit # nr of proxies in bandit
         self.proxy_for_bandits = [proxy_list[i:i + proxies_in_bandit] for i in range(0, len(proxy_list), proxies_in_bandit)]
         self.nr_of_bandits = len(self.proxy_for_bandits)
@@ -38,7 +38,14 @@ class proxyPool:
         #self.bandits = {bandit:15 for bandit in range(self.nr_of_bandits)}
         self.bandits = [i for i in range(self.nr_of_bandits)]
         self.eps = eps
+        
         self.bandit_means = []
+        self.bandit_mins = []
+        self.bandit_q1s = []
+        self.bandit_medians = []
+        self.bandit_q3s = []
+        self.bandit_maxs = []
+        
         self.update_times = []
         self.bandits_chosennr = []
         self.chosed_proxies = []
@@ -71,12 +78,29 @@ class proxyPool:
         self.proxy_for_bandits = [self.ordered_proxies[i:i + self.proxies_in_bandit] for i in range(0, len(self.ordered_proxies), self.proxies_in_bandit)]
         # calculate new proxies bandits mean from self.all_proxies and tracking bandit        
         bandit_means = []
+        bandit_mins = []
+        bandit_q1s = []
+        bandit_medians = []
+        bandit_q3s = []
+        bandit_maxs = []
+        
         for bproxylist in self.proxy_for_bandits:
             prmeans_list = []
             for proxy in bproxylist:
                 prmeans_list.append(self.all_proxies[proxy]['mean'])
             bandit_means.append(np.mean([i for i in prmeans_list if i != None]))
+            bandit_mins.append(np.min([i for i in prmeans_list if i != None]))
+            bandit_q1s.append(np.quantile([i for i in prmeans_list if i != None], 0.25))
+            bandit_medians.append(np.median([i for i in prmeans_list if i != None]))
+            bandit_q3s.append(np.quantile([i for i in prmeans_list if i != None], 0.75))
+            bandit_maxs.append(np.max([i for i in prmeans_list if i != None]))
+            
         self.bandit_means.append(bandit_means)
+        self.bandit_mins.append(bandit_mins)
+        self.bandit_q1s.append(bandit_q1s)
+        self.bandit_medians.append(bandit_medians)
+        self.bandit_q3s.append(bandit_q3s)
+        self.bandit_maxs.append(bandit_maxs)
         print(('bandits means', bandit_means))
         # proxies position and position difference from previous request after sorting, and bandit
         for i, proxy in enumerate(self.ordered_proxies):
@@ -93,11 +117,14 @@ class proxyPool:
         position_change = (ppos_change_df.apply(lambda x: len(x[x == 0]), axis = 1)/ppos_change_df.shape[1]).tolist()
 
         try:
-            to_write = [{'timestamp_pool_update':self.update_times[i], 'bandit_means':self.bandit_means[i], 'choosen_bandit':self.bandits_chosennr[i], 'position_change':position_change[i]} for i in range(-nr_of_updates, 0)]
-        except Exception as e:
-            print('Not able to create list to write bandits metrics to db. ' + str(e))
-        else:
+            #to_write = [{'timestamp_pool_update':self.update_times[i], 'bandit_means':self.bandit_means[i], 'choosen_bandit':self.bandits_chosennr[i], 'position_change':position_change[i]} for i in range(-nr_of_updates, 0)]
+            to_write = [{'timestamp_pool_update':self.update_times[i], 'bandit_means':self.bandit_means[i], 'bandit_mins':self.bandit_mins[i], 'bandit_q1s':self.bandit_q1s[i], 'bandit_medians':self.bandit_medians[i], 'bandit_q3s':self.bandit_q3s[i], 'bandit_maxs':self.bandit_maxs[i], 'choosen_bandit':self.bandits_chosennr[i], 'position_change':position_change[i]} for i in range(-nr_of_updates, 0)]
             x = dbcollection.insert_many(to_write)
+        except Exception as e:
+            print('Not able to write bandits metrics to db. ' + str(e))
+        else:
+            pass
+            
             
     def writetodb_proxies(self, dbcollection):
         
