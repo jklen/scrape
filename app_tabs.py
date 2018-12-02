@@ -23,6 +23,7 @@ myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
 adcollection_rmetrics = scrapedb['rmetrics']
 adcollection_poolmetrics = scrapedb['poolmetrics']
+adcollection_proxies = scrapedb['proxies']
 
 app = dash.Dash(__name__)
 app.config['suppress_callback_exceptions'] = True
@@ -136,10 +137,23 @@ app.layout = html.Div([
                         html.Div([
                                 dcc.Graph(id = 'boxplot_proxies')
                         ], className = 'six columns'),
+                        html.Div([
+                                dcc.Graph(id = 'scatter_proxies')
+                        ], className = 'twelve columns'),
                         dcc.Interval(
                                 id = 'tab4_interval',
                                 interval = 2000,
                                 n_intervals = 0)
+                        
+                ], className = 'row'),
+                html.Div([
+                        html.Div([
+                            html.Pre(id = 'bandit_click', style = styles['pre'])
+                        ], className = 'six columns'),
+                        html.Div([
+                            html.Pre(id = 'proxy_click', style = styles['pre'])
+                        ], className = 'six columns')
+                        
                         
                 ], className = 'row')
             ])
@@ -151,18 +165,67 @@ app.layout = html.Div([
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
+@app.callback(Output('bandit_click', 'children'),
+              [Input('boxplot_bandits', 'clickData')])
+def display_bandit_click(r):
+    return json.dumps(r, indent = 2)
+
+@app.callback(Output('proxy_click', 'children'),
+              [Input('boxplot_proxies', 'clickData')])
+def display_proxy_click(r):
+    return json.dumps(r, indent = 2)
+
+@app.callback(Output('boxplot_proxies', 'figure'),
+              [Input('tab4_interval','n_intervals'),
+               Input('boxplot_bandits', 'clickData')])
+def boxplot_proxies(interval, clicked_bandit):
+    proxies = [i for i in adcollection_proxies.find()]
+    try:
+        clicked_bandit = clicked_bandit['points'][0]['curveNumber']
+    except:
+        clicked_bandit = 0
+    else:
+        pass
+    proxy_data = [{'y':proxy['response_times']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
+    data = [Box(y = proxy['y'], name = 'p' + str(i)) for i, proxy in enumerate(proxy_data)]
+    
+    layout = dict(showlegend = False, title = 'Proxies response times in bandit ' + str(clicked_bandit),
+                  xaxis = dict(title = 'Proxy'),
+                  yaxis = dict(title = 'Proxies reposne times [s]'))
+    
+    return Figure(data = data, layout = layout)
+
+@app.callback(Output('scatter_proxies', 'figure'),
+              [Input('tab4_interval', 'n_intervals'),
+               Input('boxplot_bandits', 'clickData')])
+def scatter_proxies(interval, clicked_bandit):
+    proxies = [i for i in adcollection_proxies.find()]
+    try:
+        clicked_bandit = clicked_bandit['points'][0]['curveNumber']
+    except:
+        clicked_bandit = 0
+    else:
+        pass
+    proxy_data = [{'x':proxy['response_timestamp'], 'y':proxy['response_times'], 'name':proxy['_id']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
+    data = [Scatter(x = proxy['x'], y = proxy['y'], name = proxy['name'], line = {'width':1}, marker = {'size':5}, mode = 'lines+markers') for proxy in proxy_data]
+    layout = dict(title = 'Proxies response times in bandit ' + str(clicked_bandit),
+                  yaxis = dict(title = 'Response time [s]'))
+    
+    return Figure(data = data, layout = layout)
+
 @app.callback(Output('boxplot_bandits', 'figure'),
               [Input('tab4_interval', 'n_intervals')])
 def boxplot_bandits(interval):
     bandit_data = list(adcollection_poolmetrics.find().limit(1).sort([('$natural',-1)]))[0]
     bandit_data = [[bandit_data['bandit_mins'][i], bandit_data['bandit_q1s'][i], bandit_data['bandit_q1s'][i], bandit_data['bandit_medians'][i], bandit_data['bandit_q3s'][i], bandit_data['bandit_q3s'][i], bandit_data['bandit_maxs'][i]] for i in range(0, len(bandit_data['bandit_means']))]
     
-    data = [Box(y = j, name = str(i)) for i, j in enumerate(bandit_data)]
+    data = [Box(y = j, name = 'b' + str(i)) for i, j in enumerate(bandit_data)]
     
     layout= dict(
             title = 'Bandits proxies means',
             xaxis = dict(title = 'Bandit'),
-            yaxis = dict(title = 'Proxies means [s]'))
+            yaxis = dict(title = 'Proxies means [s]'),
+            showlegend = False)
     
     return Figure(data = data, layout = layout)
 

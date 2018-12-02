@@ -25,19 +25,10 @@ adcollection_proxies = scrapedb['proxies']
 #   adapt wait() to proxies speed
 #   why some responses have higher time than specified timeout???
 
-#   streaming plots, some dashboard
-#       histogram of all proxies response times within all bandits
-#       bar chart 
-#       mean change of proxies position within pool, overall, in some intervals
-#       ratio successful request nr./all requests nr, overall, in some intervals
-#       number of successful, unsuccesfull, total requests overall
-#       number of links and pictures successfuly scraped
-#       % of not usable proxies
-#       proxy performance on map by countries, webs
-
 #   minimum example af axes reset bug
 #   initial state of inputbox and buttons bug
 #   preserving state of custom chart buttons, zoom when interval present
+#   clickData, relayoutData with boxplot only possible when another scatter is present on page
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
@@ -50,6 +41,7 @@ adcollection_proxies = scrapedb['proxies']
 #       1. bandits overall boxplots, 2. click on bandit -> all his proxies boxplots (custom button 'overall'/'window')
 #       3. click on proxy boxplot -> line plot with proxy times (date/number x axis) 4. data for proxy including its
 #           attributes in table below
+#       chart with how many times proxy was chosen
 #       proxy map (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
 
 #   one column with prompts:
