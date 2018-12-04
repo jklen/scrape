@@ -61,8 +61,17 @@ app.layout = html.Div([
                     
                 dcc.Input(id = 'linput',
                           type = 'text',
-                          value = '500',
+                          value = '200',
                           style = {'display':'inline-block'})
+            ]),
+            html.Div(id = 'proxy_prompts', style = {'display':'none'}, children = [
+                dcc.RadioItems(id = 'proxy_radio',
+                               options = [{'label':'All proxy data', 'value':'all'},
+                                          {'label':'Window data', 'value':'window'}],
+                                value = 'all'),
+                dcc.Input(id = 'proxy_window_input',
+                          type = 'text',
+                          value = '10')
             ]),
             html.H5('testing', id = 't', style = {'display':'none'})
     ], className = 'two columns'),
@@ -176,6 +185,16 @@ app.layout = html.Div([
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
+@app.callback(Output('proxy_window_input', 'style'),
+              [Input('proxy_radio', 'value')])
+def proxy_window_input(radio):
+    if radio == 'all':
+        to_return = {'display':'none'}
+    else:
+        to_return = {'display':'inline-block'}
+    
+    return to_return
+
 @app.callback(Output('linput', 'style'),
               [Input('limit_check', 'values')])
 def limit_input(check):
@@ -200,8 +219,10 @@ def display_proxy_click(r):
 
 @app.callback(Output('boxplot_proxies', 'figure'),
               [Input('tab4_interval','n_intervals'),
-               Input('boxplot_bandits', 'clickData')])
-def boxplot_proxies(interval, clicked_bandit):
+               Input('boxplot_bandits', 'clickData'),
+               Input('proxy_window_input', 'value'),
+               Input('proxy_radio', 'value')])
+def boxplot_proxies(interval, clicked_bandit, window, pradio):
     proxies = [i for i in adcollection_proxies.find()]
     try:
         clicked_bandit = clicked_bandit['points'][0]['curveNumber']
@@ -209,7 +230,13 @@ def boxplot_proxies(interval, clicked_bandit):
         clicked_bandit = 0
     else:
         pass
-    proxy_data = [{'y':proxy['response_times']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
+    
+    if pradio == 'all':
+        proxy_data = [{'y':proxy['response_times']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit and len(proxy['response_times']) > 0]
+    elif pradio == 'window':
+        window = int(window)
+        proxy_data = [{'y':proxy['response_times'][-window:]} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit and len(proxy['response_times']) > 0]
+
     data = [Box(y = proxy['y'], name = 'p' + str(i)) for i, proxy in enumerate(proxy_data)]
     data0 = Scatter(x = ['p' + str(i) for i in range(0, len(proxy_data))],
                     y = [len(i['y']) for i in proxy_data],
@@ -229,8 +256,10 @@ def boxplot_proxies(interval, clicked_bandit):
 
 @app.callback(Output('scatter_proxies', 'figure'),
               [Input('tab4_interval', 'n_intervals'),
-               Input('boxplot_bandits', 'clickData')])
-def scatter_proxies(interval, clicked_bandit):
+               Input('boxplot_bandits', 'clickData'),
+               Input('proxy_window_input', 'value'),
+               Input('proxy_radio', 'value')])
+def scatter_proxies(interval, clicked_bandit, window, pradio):
     proxies = [i for i in adcollection_proxies.find()]
     try:
         clicked_bandit = clicked_bandit['points'][0]['curveNumber']
@@ -238,7 +267,13 @@ def scatter_proxies(interval, clicked_bandit):
         clicked_bandit = 0
     else:
         pass
-    proxy_data = [{'x':proxy['response_timestamp'], 'y':proxy['response_times'], 'name':proxy['_id']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
+    
+    if pradio == 'all':
+        proxy_data = [{'x':proxy['response_timestamp'], 'y':proxy['response_times'], 'name':proxy['_id']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
+    elif pradio == 'window':
+        window = int(window)
+        proxy_data = [{'x':proxy['response_timestamp'][-window:], 'y':proxy['response_times'][-window:], 'name':proxy['_id']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
+
     data = [Scatter(x = proxy['x'], y = proxy['y'], name = proxy['name'], line = {'width':1}, marker = {'size':5}, mode = 'lines+markers') for proxy in proxy_data]
     layout = dict(title = 'Proxies response times in bandit ' + str(clicked_bandit),
                   yaxis = dict(title = 'Response time [s]'))
@@ -281,6 +316,16 @@ def ma_input(click_up, click_up_ts, click_down, click_down_ts, ma_state):
     
     return to_return
 
+@app.callback(Output('proxy_prompts', 'style'),
+              [Input('tabs', 'value')])
+def proxy_prompts(tab):
+    if tab == 'proxies':
+        to_return = {'display':'inline-block'}
+    else:
+        to_return = {'display':'none'}
+    
+    return to_return
+
 @app.callback(Output('tab_prompts', 'style'),
               [Input('tabs', 'value')])
 def tab_prompts(tab):
@@ -293,8 +338,10 @@ def tab_prompts(tab):
 @app.callback(Output('line_position_change', 'figure'),
               [Input('tab3_interval', 'n_intervals'),
                Input('xaxis', 'value'),
-               Input('ma_input', 'value')])
-def line_position_change(interval, xtype, ma):
+               Input('ma_input', 'value'),
+               Input('linput', 'value'),
+               Input('limit_check', 'values')])
+def line_position_change(interval, xtype, ma, linput, lcheck):
     ma = int(ma)
     x = [r['timestamp_pool_update'] for r in adcollection_poolmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
@@ -305,14 +352,24 @@ def line_position_change(interval, xtype, ma):
     y2 = pd.Series(y1).rolling(ma).mean()
     y3 = pd.Series(y1).expanding().mean()
     
+    try:
+        lcheck = lcheck[0]
+    except:
+        lcheck = False
+    else:
+        lcheck = True
+        linput = int(linput)
+        x = x[-linput:]
+        x_range[0] = x[0]
+    
     trace = Scatter(x = x,
-                    y = y1,
+                    y = y1[-linput:] if lcheck else y1,
                     name = 'Position change',
                     marker = dict(color = '#92b4f2'),
                     line = dict( width = 1),
                     mode = 'lines')
     trace2 = Scatter(x = x,
-                     y = y2,
+                     y = y2[-linput:] if lcheck else y2,
                      name = 'MA',
                      marker = dict(
                              color = '#fb2e01'),
@@ -320,7 +377,7 @@ def line_position_change(interval, xtype, ma):
                     mode = 'lines')
                              
     trace3 = Scatter(x = x,
-                     y = y3,
+                     y = y3[-linput:] if lcheck else y3,
                      name = 'CA',
                      marker = dict(
                              color = '#0d3592'),
@@ -389,12 +446,23 @@ def bar_bandit_chosennr(interval, val):
     return Figure(data = [trace], layout = layout)
 
 @app.callback(Output('line_bandit_means', 'figure'),
-              [Input('tab3_interval', 'n_intervals')])
-def line_bandit_means(interval):
+              [Input('tab3_interval', 'n_intervals'),
+               Input('linput', 'value'),
+               Input('limit_check', 'values')])
+def line_bandit_means(interval, linput, lcheck):
     meansdf = pd.DataFrame([b['bandit_means'] for b in adcollection_poolmetrics.find()])
     x = [i for i in range(0, len(meansdf) + 1)]
     
-    data = [Scatter(x = x, y = meansdf[i], name = str(i), line = dict(width = 1)) for i in list(meansdf)]
+    try:
+        lcheck = lcheck[0]
+    except:
+        lcheck = False
+    else:
+        lcheck = True
+        linput = int(linput)
+        x = x[-linput:]
+    
+    data = [Scatter(x = x, y = meansdf[i][-linput:] if lcheck else meansdf[i], name = str(i), line = dict(width = 1)) for i in list(meansdf)]
     layout= dict(
             title = 'Bandits cumulative mean',
             xaxis = dict(title = 'Request nr.'),
@@ -404,8 +472,10 @@ def line_bandit_means(interval):
 
 @app.callback(Output('line_attempts', 'figure'),
               [Input('xaxis', 'value'),
-               Input('tab2_interval', 'n_intervals')])
-def line_attempts(xtype, interval):
+               Input('tab2_interval', 'n_intervals'),
+               Input('linput', 'value'),
+               Input('limit_check', 'values')])
+def line_attempts(xtype, interval, linput, lcheck):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
@@ -414,14 +484,24 @@ def line_attempts(xtype, interval):
     y1 = [r['attempts'] for r in adcollection_rmetrics.find()]
     y2 = pd.Series(y1).expanding().mean()
     
+    try:
+        lcheck = lcheck[0]
+    except:
+        lcheck = False
+    else:
+        lcheck = True
+        linput = int(linput)
+        x = x[-linput:]
+        x_range[0] = x[0]
+    
     trace = Scatter(x = x,
-                    y = y1,
+                    y = y1[-linput:] if lcheck else y1,
                     name = 'Regular',
                     line = dict(width = 1),
                     marker = {'color':'#92b4f2'},
                     mode = 'lines')
     trace2 = Scatter(x = x,
-                     y = y2,
+                     y = y2[-linput:] if lcheck else y2,
                      name = 'CA',
                      marker = dict(
                              color = '#fb2e01'),
@@ -460,8 +540,10 @@ def line_attempts(xtype, interval):
 
 @app.callback(Output('line_pure_wait_sum', 'figure'),
               [Input('xaxis', 'value'),
-               Input('tab2_interval', 'n_intervals')])
-def line_pure_wait_sum(xtype, interval):
+               Input('tab2_interval', 'n_intervals'),
+               Input('linput', 'value'),
+               Input('limit_check', 'values')])
+def line_pure_wait_sum(xtype, interval, linput, lcheck):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
@@ -473,25 +555,35 @@ def line_pure_wait_sum(xtype, interval):
     y_trace5 = [0.5 for i in range(0, len(x))]
     y_trace6 = [1 for i in range(0, len(x))]
     
+    try:
+        lcheck = lcheck[0]
+    except:
+        lcheck = False
+    else:
+        lcheck = True
+        linput = int(linput)
+        x = x[-linput:]
+        x_range[0] = x[0]
+    
     trace = Scatter(x = x,
-                    y = y1,
+                    y = y1[-linput:] if lcheck else y1,
                     name = 'Pure time',
                     line = dict(width = 1),
                     marker = {'color':'#92b4f2'},
                     mode = 'lines')
     trace2 = Scatter(x = x,
-                     y = y2,
+                     y = y2[-linput:] if lcheck else y2,
                      name = 'Wait time',
                     line = dict(width = 1),
                     mode = 'lines')
     trace3 = Scatter(x = x,
-                     y = y3,
+                     y = y3[-linput:] if lcheck else y3,
                      name = 'Total',
                      marker = dict(color = '#fb2e01'),
                     line = dict(width = 1),
                     mode = 'lines')
     trace4 = Scatter(x = x,
-                     y = y2/y1,
+                     y = (y2/y1)[-linput:] if lcheck else y2/y1,
                      name = 'Waits/Pure',
                      line = dict(dash = 'dash',
                                  width = 1),
@@ -499,14 +591,14 @@ def line_pure_wait_sum(xtype, interval):
                      mode = 'lines'
                      )
     trace5 = Scatter(x = x,
-                     y = y_trace5,
+                     y = y_trace5[-linput:] if lcheck else y_trace5,
                      line = dict(dash = 'dash'),
                      marker = dict(color = '#d7dbdd'),
                     yaxis = 'y2',
                     showlegend = False,
                     mode = 'lines')
     trace6 = Scatter(x = x,
-                     y = y_trace6,
+                     y = y_trace6[-linput:] if lcheck else y_trace6,
                      line = dict(dash = 'dash'),
                      marker = dict(color = '#d7dbdd'),
                     yaxis = 'y2',
@@ -533,7 +625,7 @@ def line_pure_wait_sum(xtype, interval):
     ])
     
     layout = dict(
-            title = 'Cumulative sum of  times',
+            title = 'Cumulative sum of times',
             xaxis = dict(title = 'Link nr.',
                          range = x_range),
             yaxis = dict(title = 'Time'),
@@ -654,9 +746,10 @@ def times_refreshed(interval):
               Input('ma_input', 'value'), 
               Input('interval_button', 'n_clicks'),
               Input('xaxis', 'value'),
-              Input('linput', 'value')])
-def content_links_time_window(selected_tab, interval, ma, n_clicks, xaxis, limit):
-    to_return = gen_line1(int(ma), xaxis, limit)
+              Input('linput', 'value'),
+              Input('limit_check', 'values')])
+def content_links_time_window(selected_tab, interval, ma, n_clicks, xaxis, linput, lcheck):
+    to_return = gen_line1(int(ma), xaxis, linput, lcheck)
     
     return to_return
 
@@ -666,43 +759,55 @@ def content_links_time_window(selected_tab, interval, ma, n_clicks, xaxis, limit
                Input('interval_button', 'n_clicks'),
                Input('xaxis', 'value'),
                Input('line_time', 'relayoutData'),
-               Input('ma_input', 'value')])
-def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay, ma):
-    to_return = gen_area1(xaxis, relay, int(ma))       
+               Input('ma_input', 'value'),
+               Input('linput', 'value'),
+               Input('limit_check', 'values')])
+def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay, ma, linput, lcheck):
+    to_return = gen_area1(xaxis, relay, int(ma), linput, lcheck)       
     
     return to_return
     
-def gen_line1(slider, xtype, limit):
+def gen_line1(slider, xtype, linput, lcheck):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
         x = [i for i in range(0, len(x) + 1)]
     y = [r['time success'] for r in adcollection_rmetrics.find()]
-    y_MA = pd.Series(y).rolling(slider).mean()    
+    y_MA = pd.Series(y).rolling(slider).mean()
+    
+    try:
+        lcheck = lcheck[0]
+    except:
+        lcheck = False
+    else:
+        lcheck = True
+        linput = int(linput)
+        x = x[-linput:]
+        x_range[0] = x[0]
     
     trace = Scatter(x = x,
-                    y = y,
+                    y = y[-linput:] if lcheck else y,
                     name = 'Regular',
                     line = dict(width = 1),
                     marker = {'color':'#92b4f2'},
                     mode = 'lines')
     trace_cummean = Scatter(
             x = x,
-            y = pd.Series(y).expanding().mean(),
+            y = pd.Series(y).expanding().mean()[-linput:] if lcheck else pd.Series(y).expanding().mean(),
             name = 'CA',
             visible = False,
             line = dict(width = 1),
             mode = 'lines')
     trace_cummedian = Scatter(
             x = x,
-            y = pd.Series(y).expanding().median(),
+            y = pd.Series(y).expanding().median()[-linput:] if lcheck else pd.Series(y).expanding().median(),
             name = 'CM',
             visible = False,
             line = dict(width = 1),
             mode = 'lines')
     trace_cum1q = Scatter(
             x = x,
-            y = pd.Series(y).expanding().quantile(0.25),
+            y = pd.Series(y).expanding().quantile(0.25)[-linput:] if lcheck else pd.Series(y).expanding().quantile(0.25),
             name = 'C1Q',
             visible = False,
             line = dict(dash = 'dash',
@@ -710,14 +815,14 @@ def gen_line1(slider, xtype, limit):
             mode = 'lines')
     trace_cum3q = Scatter(
             x = x,
-            y = pd.Series(y).expanding().quantile(0.75),
+            y = pd.Series(y).expanding().quantile(0.75)[-linput:] if lcheck else pd.Series(y).expanding().quantile(0.75),
             name = 'C3Q',
             visible = False,
             line = dict(dash = 'dash',
                         width = 1),
             mode = 'lines')    
     trace_MA = Scatter(x = x,
-                       y = y_MA,
+                       y = y_MA[-linput:] if lcheck else y_MA,
                        marker = {'color':'#fb2e01'},
                         name = 'MA',
                         line = dict(width = 1),
@@ -774,7 +879,7 @@ def gen_line1(slider, xtype, limit):
     
     return Figure(data = [trace, trace_cummean, trace_cummedian, trace_cum1q, trace_cum3q, trace_MA], layout = layout)
 
-def gen_area1(xtype, relay, ma):
+def gen_area1(xtype, relay, ma, linput, lcheck):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
@@ -789,16 +894,26 @@ def gen_area1(xtype, relay, ma):
     y1 = [r['pure time'] for r in adcollection_rmetrics.find()]
     y2 = [r['waits'] for r in adcollection_rmetrics.find()]
     
+    try:
+        lcheck = lcheck[0]
+    except:
+        lcheck = False
+    else:
+        lcheck = True
+        linput = int(linput)
+        x = x[-linput:]
+        x_range[0] = x[0]
+    
     trace1 = Scatter(
             x = x,
-            y = y1,
+            y = y1[-linput:] if lcheck else y1,
             name = 'Pure time',
             line = dict(width = 1),
             marker = {'color':'#92b4f2'},
             mode = 'lines')
     trace1_cummean = Scatter(
             x = x,
-            y = pd.Series(y1).expanding().mean(),
+            y = pd.Series(y1).expanding().mean()[-linput:] if lcheck else pd.Series(y1).expanding().mean(),
             name = 'Pure time',
             visible = False,
             line = dict(width = 1),
@@ -806,7 +921,7 @@ def gen_area1(xtype, relay, ma):
             mode = 'lines')
     trace1_cummedian = Scatter(
             x = x,
-            y = pd.Series(y1).expanding().median(),
+            y = pd.Series(y1).expanding().median()[-linput:] if lcheck else pd.Series(y1).expanding().median(),
             name = 'Pure time',
             visible = False,
             line = dict(width = 1),
@@ -814,7 +929,7 @@ def gen_area1(xtype, relay, ma):
             mode = 'lines')
     trace1_ma = Scatter(
             x = x,
-            y = pd.Series(y1).rolling(ma).mean(),
+            y = pd.Series(y1).rolling(ma).mean()[-linput:] if lcheck else pd.Series(y1).rolling(ma).mean(),
             name = 'Pure time MA',
             visible = True,
             line = dict(width = 1.5, dash = 'dash'),
@@ -823,7 +938,7 @@ def gen_area1(xtype, relay, ma):
     
     trace2 = Scatter(
             x = x,
-            y = y2,
+            y = y2[-linput:] if lcheck else y2,
             name = 'Wait time',
             line = dict(width = 1),
             marker = dict(color = '#ffb653'),
@@ -831,21 +946,21 @@ def gen_area1(xtype, relay, ma):
     
     trace2_cummean = Scatter(
             x = x,
-            y = pd.Series(y2).expanding().mean(),
+            y = pd.Series(y2).expanding().mean()[-linput:] if lcheck else pd.Series(y2).expanding().mean(),
             name = 'Wait time',
             visible = False,
             line = dict(width = 1),
             mode = 'lines')
     trace2_cummedian = Scatter(
             x = x,
-            y = pd.Series(y2).expanding().median(),
+            y = pd.Series(y2).expanding().median()[-linput:] if lcheck else pd.Series(y2).expanding().median(),
             name = 'Wait time',
             visible = False,
             line = dict(width = 1),
             mode = 'lines')
     trace2_ma = Scatter(
             x = x,
-            y = pd.Series(y2).rolling(ma).mean(),
+            y = pd.Series(y2).rolling(ma).mean()[-linput:] if lcheck else pd.Series(y2).rolling(ma).mean(),
             name = 'Wait time MA',
             visible = True,
             line = dict(width = 1.5, dash = 'dash'),
@@ -868,7 +983,7 @@ def gen_area1(xtype, relay, ma):
                 ),
                 dict(label = 'Reset',
                      method = 'update',
-                     args = [{'visible':[True, False, False, True, False, False, False, False]},
+                     args = [{'visible':[True, False, False, True, True, False, False, True]},
                               {'title':'Pure vs. wait time'}]
                 )
             ])

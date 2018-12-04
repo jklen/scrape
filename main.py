@@ -28,7 +28,8 @@ adcollection_proxies = scrapedb['proxies']
 #   minimum example af axes reset bug
 #   initial state of inputbox and buttons bug
 #   preserving state of custom chart buttons, zoom when interval present
-#   clickData, relayoutData with boxplot only possible when another scatter is present on page
+#   clickData, relayoutData with boxplot only possible when another scatter is present on page/tab
+#   the click event does not work when previous tab was clicked before, when before was clicked 1st or 2nd tab, its ok
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links
@@ -50,11 +51,11 @@ if __name__ == '__main__':
     proxy_list = scrape_proxies()
     proxy_pool = proxyPool(proxy_list, 10, 0.4)
     #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 5)
+    links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 20)
     for i, link in enumerate(links):
         print('Scraping link %d of %d' %(i, len(links)))
         ad = TopRealityAd(link, proxy_pool, browser_list)
-        ad.scrape_all(savepics = True)
+        ad.scrape_all(savepics = False)
         proxy_pool = ad.proxy_pool
         proxy_pool.writetodb_poolmetrics(adcollection_poolmetrics, sum(ad.attempts))
         proxy_pool.writetodb_proxies(adcollection_proxies)
