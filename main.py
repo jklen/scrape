@@ -37,16 +37,10 @@ adcollection_proxies = scrapedb['proxies']
 #   when I change a property with one callback will it trigger another?
 #   limit amount of data and put it to hidden div, only few charts will query all data
 
-#   proxies
-#       1. bandits overall boxplots, 2. click on bandit -> all his proxies boxplots (custom button 'overall'/'window')
-#       3. click on proxy boxplot -> line plot with proxy times (date/number x axis) 4. data for proxy including its
-#           attributes in table below
-#       chart with how many times proxy was chosen
-#       proxy map (need to get also country, type- elite, transparent, ..., declared speed of proxy, server from which it was scraped)
-
 #   one column with prompts:
 #       data filter (calculations are from whole data), for example last 200 values
-#       chart type for selected charts (line chart, boxplots)
+
+#   proxies - option to see stats for last n values or whole
 
 #   link to rmetrics collection
 

@@ -51,7 +51,18 @@ app.layout = html.Div([
                                                   ],
                                 value = 'date',
                                 labelStyle = {'display':'inline-block'})
-                ])
+                ]),
+                html.Div([
+                    dcc.Checklist(
+                            id = 'limit_check',
+                            options = [{'label':'Limit visible data', 'value':'limit'}],
+                            values = ['limit'])
+                ]),
+                    
+                dcc.Input(id = 'linput',
+                          type = 'text',
+                          value = '500',
+                          style = {'display':'inline-block'})
             ]),
             html.H5('testing', id = 't', style = {'display':'none'})
     ], className = 'two columns'),
@@ -165,6 +176,18 @@ app.layout = html.Div([
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
 
+@app.callback(Output('linput', 'style'),
+              [Input('limit_check', 'values')])
+def limit_input(check):
+    try:
+        check[0]
+    except:
+        to_return = {'display':'none'}
+    else:
+        to_return = {'display':'inline-block'}
+        
+    return to_return
+
 @app.callback(Output('bandit_click', 'children'),
               [Input('boxplot_bandits', 'clickData')])
 def display_bandit_click(r):
@@ -188,10 +211,19 @@ def boxplot_proxies(interval, clicked_bandit):
         pass
     proxy_data = [{'y':proxy['response_times']} for proxy in proxies if proxy['bandit'][-1] == clicked_bandit]
     data = [Box(y = proxy['y'], name = 'p' + str(i)) for i, proxy in enumerate(proxy_data)]
+    data0 = Scatter(x = ['p' + str(i) for i in range(0, len(proxy_data))],
+                    y = [len(i['y']) for i in proxy_data],
+                    yaxis = 'y2',
+                    line = dict(width = 1),
+                    opacity = 0.5)
+    data.append(data0)
     
     layout = dict(showlegend = False, title = 'Proxies response times in bandit ' + str(clicked_bandit),
                   xaxis = dict(title = 'Proxy'),
-                  yaxis = dict(title = 'Proxies reposne times [s]'))
+                  yaxis = dict(title = 'Proxies reposne times [s]'),
+                  yaxis2 = dict(overlaying = 'y',
+                                side = 'right',
+                                title = 'Nr. of times used'))
     
     return Figure(data = data, layout = layout)
 
@@ -621,9 +653,10 @@ def times_refreshed(interval):
               Input('tab2_interval', 'n_intervals'), 
               Input('ma_input', 'value'), 
               Input('interval_button', 'n_clicks'),
-              Input('xaxis', 'value')])
-def content_links_time_window(selected_tab, interval, ma, n_clicks, xaxis):
-    to_return = gen_line1(int(ma), xaxis)
+              Input('xaxis', 'value'),
+              Input('linput', 'value')])
+def content_links_time_window(selected_tab, interval, ma, n_clicks, xaxis, limit):
+    to_return = gen_line1(int(ma), xaxis, limit)
     
     return to_return
 
@@ -639,7 +672,7 @@ def content_links_area_chart(selected_tab, interval, n_clicks, xaxis, relay, ma)
     
     return to_return
     
-def gen_line1(slider, xtype):
+def gen_line1(slider, xtype, limit):
     x = [r['timestamp'] for r in adcollection_rmetrics.find()]
     x_range = [x[-1] - datetime.timedelta(minutes = 30), x[-1]]
     if xtype == 'nr':
