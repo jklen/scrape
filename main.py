@@ -30,6 +30,7 @@ adcollection_proxies = scrapedb['proxies']
 #   preserving state of custom chart buttons, zoom when interval present
 #   clickData, relayoutData with boxplot only possible when another scatter is present on page/tab
 #   the click event does not work when previous tab was clicked before, when before was clicked 1st or 2nd tab, its ok
+#       - solved when all charts put into one div on each tab
 
 #   nr. of links scraped, also %
 #   nr. of deleted (not scraped) links

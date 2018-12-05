@@ -36,8 +36,9 @@ styles = {
 
 app.layout = html.Div([
     html.Div([
-            html.H3('Column 1'),
+            html.H3('Scraper'),
             html.Button(children = 'Stop refresh', id = 'interval_button'),
+            html.Div(id = 'times_refreshed'),
             html.Div(id = 'tab_prompts', style = {'display':'none'}, children = [
                 html.H5('Moving average'),
                 html.Button(id = 'ma_down', children = '<', n_clicks = 0, n_clicks_timestamp = -1),
@@ -72,8 +73,7 @@ app.layout = html.Div([
                 dcc.Input(id = 'proxy_window_input',
                           type = 'text',
                           value = '10')
-            ]),
-            html.H5('testing', id = 't', style = {'display':'none'})
+            ])
     ], className = 'two columns'),
     html.Div([
         dcc.Tabs(id="tabs", children=[
@@ -85,97 +85,95 @@ app.layout = html.Div([
                                 n_intervals = 0)])
             ]),
             dcc.Tab(label='Links time window', value = 'links_time', children=[
-                html.Div([
-                        html.Div([
-                                html.H5('Times refreshed:')
-                        ], className = 'four columns')
-                ], className = 'row'),
-                html.Div([
+                html.Div(id = 'links_time_charts', children = [
                     html.Div([
-                            html.Div(id = 'times_refreshed')
-                    ], className = 'two columns')                
-                ], className = 'row'),
-                html.Div([
-                        html.Div([
-                            dcc.Graph(id = 'line_time')
-                        ], className = 'six columns'),
-                        html.Div([
-                            dcc.Graph(id = 'area_time')
-                        ], className = 'six columns'),
-                        dcc.Interval(
-                                id = 'tab2_interval',
-                                interval = 2000,
-                                n_intervals = 0)
-                ], className = 'row'),
-                html.Div([
-                        html.Div([
-                            dcc.Graph(id = 'line_attempts')
-                        ], className = 'six columns'),
-                        html.Div([
-                            dcc.Graph(id = 'line_pure_wait_sum')
-                        ], className = 'six columns')
-                        
-                        
-                ], className = 'row'),
-                html.Div([
-                        html.Div([
-                            html.Pre(id = 'relayed data', style = styles['pre'])
-                        ], className = 'six columns'),
-                        html.Div([
-                            html.Pre(id = 'relayed data status', style = styles['pre'])        
-                        ], className = 'six columns')
-                        
-                        
-                ], className = 'row')
+                            html.Div([
+                                dcc.Graph(id = 'line_time')
+                            ], className = 'six columns'),
+                            html.Div([
+                                dcc.Graph(id = 'area_time')
+                            ], className = 'six columns')
+                    ], className = 'row'),
+                    html.Div([
+                            html.Div([
+                                dcc.Graph(id = 'line_attempts')
+                            ], className = 'six columns'),
+                            html.Div([
+                                dcc.Graph(id = 'line_pure_wait_sum')
+                            ], className = 'six columns')
+                            
+                            
+                    ], className = 'row'),
+                    html.Div([
+                            html.Div([
+                                html.Pre(id = 'relayed data', style = styles['pre'])
+                            ], className = 'six columns'),
+                            html.Div([
+                                html.Pre(id = 'relayed data status', style = styles['pre'])        
+                            ], className = 'six columns')
+                            
+                            
+                    ], className = 'row'),
+                    dcc.Interval(
+                            id = 'tab2_interval',
+                            interval = 2000,
+                            n_intervals = 0)
+                ])
             ]),
             dcc.Tab(label='Pool', value = 'pool', children=[
-                html.Div([
-                        html.Div([
-                                dcc.Graph(id = 'line_bandit_means')
-                        ], className = 'six columns'),
-                        html.Div([
-                                dcc.Graph(id = 'bar_bandit_chosennr')
-                        ], className = 'six columns'),
-                        dcc.Interval(
-                                id = 'tab3_interval',
-                                interval = 2000,
-                                n_intervals = 0)
-                        
-                ], className = 'row'),
-                html.Div([
-                        html.Div([
-                                dcc.Graph(id = 'line_position_change')                            
-                        ], className = 'twelve columns')
-                        
-                ], className = 'row')
+                html.Div(id = 'pool_charts', children = [
+                    html.Div([
+                            html.Div([
+                                    dcc.Graph(id = 'line_bandit_means')
+                            ], className = 'six columns'),
+                            html.Div([
+                                    dcc.Graph(id = 'bar_bandit_chosennr')
+                            ], className = 'six columns')
+                            
+                    ], className = 'row'),
+                    html.Div([
+                            html.Div([
+                                    dcc.Graph(id = 'line_position_change')                            
+                            ], className = 'twelve columns')
+                            
+                    ], className = 'row'),
+                    dcc.Interval(
+                            id = 'tab3_interval',
+                            interval = 2000,
+                            n_intervals = 0)
+                ])
             ]),
             dcc.Tab(label = 'Proxies', value = 'proxies', children = [
-                html.Div([
-                        html.Div([
-                                dcc.Graph(id = 'boxplot_bandits')
-                        ], className = 'six columns'),
-                        html.Div([
-                                dcc.Graph(id = 'boxplot_proxies')
-                        ], className = 'six columns'),
-                        html.Div([
-                                dcc.Graph(id = 'scatter_proxies')
-                        ], className = 'twelve columns'),
-                        dcc.Interval(
-                                id = 'tab4_interval',
-                                interval = 2000,
-                                n_intervals = 0)
-                        
-                ], className = 'row'),
-                html.Div([
-                        html.Div([
-                            html.Pre(id = 'bandit_click', style = styles['pre'])
-                        ], className = 'six columns'),
-                        html.Div([
-                            html.Pre(id = 'proxy_click', style = styles['pre'])
-                        ], className = 'six columns')
-                        
-                        
-                ], className = 'row')
+                html.Div(id = 'proxies_charts', children = [
+                    html.Div([
+                            html.Div([
+                                    dcc.Graph(id = 'boxplot_bandits')
+                            ], className = 'six columns'),
+                            html.Div([
+                                    dcc.Graph(id = 'boxplot_proxies')
+                            ], className = 'six columns')
+                    ], className = 'row'),
+                    html.Div([
+                            html.Div([
+                                    dcc.Graph(id = 'scatter_proxies')
+                            ], className = 'twelve columns')
+                            
+                    ], className = 'row'),
+                    html.Div([
+                            html.Div([
+                                html.Pre(id = 'bandit_click', style = styles['pre'])
+                            ], className = 'six columns'),
+                            html.Div([
+                                html.Pre(id = 'proxy_click', style = styles['pre'])
+                            ], className = 'six columns')
+                            
+                            
+                    ], className = 'row'),
+                    dcc.Interval(
+                            id = 'tab4_interval',
+                            interval = 2000,
+                            n_intervals = 0)
+                ])
             ])
         ])
     
@@ -184,6 +182,24 @@ app.layout = html.Div([
                     
 #app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'})
 app.css.append_css({'external_url':'https://codepen.io/amyoshino/pen/jzXypZ.css'})
+
+@app.callback(Output('times_refreshed', 'children'),
+              [Input('tabs', 'value'),
+               Input('tab1_interval', 'n_intervals'),
+               Input('tab2_interval', 'n_intervals'),
+               Input('tab3_interval', 'n_intervals'),
+               Input('tab4_interval', 'n_intervals')])
+def times_refreshed(tab, int1, int2, int3, int4):
+    if tab == 'links_overall':
+        to_return = html.H5('Times refreshed: ' + str(int1))
+    elif tab == 'links_time':
+        to_return = html.H5('Times refreshed: ' + str(int2))
+    elif tab == 'pool':
+        to_return = html.H5('Times refreshed: ' + str(int3))
+    elif tab == 'proxies':
+        to_return = html.H5('Times refreshed: ' + str(int4))
+    
+    return to_return
 
 @app.callback(Output('proxy_window_input', 'style'),
               [Input('proxy_radio', 'value')])
@@ -250,7 +266,8 @@ def boxplot_proxies(interval, clicked_bandit, window, pradio):
                   yaxis = dict(title = 'Proxies reposne times [s]'),
                   yaxis2 = dict(overlaying = 'y',
                                 side = 'right',
-                                title = 'Nr. of times used'))
+                                title = 'Nr. of times used'),
+                    margin = dict(l = 50, r = 50, t = 80, b = 50))
     
     return Figure(data = data, layout = layout)
 
@@ -276,7 +293,8 @@ def scatter_proxies(interval, clicked_bandit, window, pradio):
 
     data = [Scatter(x = proxy['x'], y = proxy['y'], name = proxy['name'], line = {'width':1}, marker = {'size':5}, mode = 'lines+markers') for proxy in proxy_data]
     layout = dict(title = 'Proxies response times in bandit ' + str(clicked_bandit),
-                  yaxis = dict(title = 'Response time [s]'))
+                  yaxis = dict(title = 'Response time [s]'),
+                  margin = dict(l = 50, r = 50, t = 80, b = 50))
     
     return Figure(data = data, layout = layout)
 
@@ -292,7 +310,8 @@ def boxplot_bandits(interval):
             title = 'Bandits proxies means',
             xaxis = dict(title = 'Bandit'),
             yaxis = dict(title = 'Proxies means [s]'),
-            showlegend = False)
+            showlegend = False,
+            margin = dict(l = 50, r = 50, t = 80, b = 50))
     
     return Figure(data = data, layout = layout)
 
@@ -394,7 +413,8 @@ def line_position_change(interval, xtype, ma, linput, lcheck):
                          range = [0,1.1]),
             yaxis2 = dict(overlaying = 'y',
                           side = 'right',
-                          range = [0,1.1])
+                          range = [0,1.1]),
+            margin = dict(l = 50, r = 50, t = 80, b = 50)
     )
             
     if xtype == 'date':
@@ -442,7 +462,8 @@ def bar_bandit_chosennr(interval, val):
                             type = 'category',
                             title = 'Bandit'),
                     yaxis = dict(
-                            title = 'Count'))
+                            title = 'Count'),
+                    margin = dict(l = 50, r = 50, t = 80, b = 50))
     return Figure(data = [trace], layout = layout)
 
 @app.callback(Output('line_bandit_means', 'figure'),
@@ -466,7 +487,8 @@ def line_bandit_means(interval, linput, lcheck):
     layout= dict(
             title = 'Bandits cumulative mean',
             xaxis = dict(title = 'Request nr.'),
-            yaxis = dict(title = 'Time [s]'))
+            yaxis = dict(title = 'Time [s]'),
+            margin = dict(l = 50, r = 50, t = 80, b = 50))
     
     return Figure(data = data, layout = layout)
 
@@ -512,7 +534,8 @@ def line_attempts(xtype, interval, linput, lcheck):
             title = 'Number of attempts per link',
             xaxis = dict(title = 'Link nr.',
                          range = x_range),
-            yaxis = dict(title = 'Nr. of attempts')
+            yaxis = dict(title = 'Nr. of attempts'),
+            margin = dict(l = 50, r = 50, t = 80, b = 50)
     )
             
     if xtype == 'date':
@@ -632,7 +655,8 @@ def line_pure_wait_sum(xtype, interval, linput, lcheck):
             updatemenus = updatemenus,
             yaxis2 = dict(overlaying = 'y',
                           side = 'right',
-                          title = 'Ratio')
+                          title = 'Ratio'),
+            margin = dict(l = 50, r = 50, t = 80, b = 50)
     )
             
     if xtype == 'date':
@@ -714,31 +738,26 @@ def content_links_overall(selected_tab, interval):
     to_return = html.Div([
                     html.Div([
                         html.Div([
-                                html.H1('h1 tag ' + str(interval)),
-                                dcc.Graph(id='histogram_time', figure=gen_histogram1())
+                                dcc.Graph(id='histogram_time', figure=gen_histogram1(), config = {'displayModeBar':False})
                         ], className = 'six columns'),
                         html.Div([
-                                dcc.Graph(id = 'histogram_attempts', figure = gen_histogram_attempts())
+                                dcc.Graph(id = 'histogram_attempts', figure = gen_histogram_attempts(), config = {'displayModeBar':False})
                         ], className = 'six columns')
                     ], className = 'row'),
                     html.Div([
                         html.Div([
-                                dcc.Graph(id = 'histogram_pure_wait', figure = gen_histogram2())                
+                                dcc.Graph(id = 'histogram_pure_wait', figure = gen_histogram2(), config = {'displayModeBar':False})                
                         ], className = 'four columns'),
                         html.Div([
-                                dcc.Graph(id = 'density_pure_wait', figure = gen_distplot())                
+                                dcc.Graph(id = 'density_pure_wait', figure = gen_distplot(), config = {'displayModeBar':False})                
                         ], className = 'four columns'),        
                         html.Div([
-                                dcc.Graph(id = 'pie_chart', figure = gen_piechart())                
+                                dcc.Graph(id = 'pie_chart', figure = gen_piechart(), config = {'displayModeBar':False})                
                         ], className = 'four columns')            
                     ], className = 'row')
                 ])
         
     return to_return
-
-@app.callback(Output('times_refreshed', 'children'), [Input('tab2_interval', 'n_intervals')])
-def times_refreshed(interval):
-    return html.H5(interval)
 
 @app.callback(Output('line_time', 'figure'),
               [Input('tabs', 'value'), 
@@ -850,7 +869,8 @@ def gen_line1(slider, xtype, linput, lcheck):
             title = 'Whole time to process links',
             xaxis = dict(title = 'Link nr.'),
             yaxis = dict(title = 'Time [s]'),
-            updatemenus = updatemenus
+            updatemenus = updatemenus,
+            margin = dict(l = 50, r = 50, t = 80, b = 50)
     )
             
     if xtype == 'date':
@@ -995,7 +1015,8 @@ def gen_area1(xtype, relay, ma, linput, lcheck):
             xaxis = dict(title = 'Link nr.',
                          range = x_range),
             yaxis = dict(title = 'Time [s]'),
-            updatemenus = updatemenus)
+            updatemenus = updatemenus,
+            margin = dict(l = 50, r = 50, t = 80, b = 50))
     
     
     
@@ -1035,8 +1056,9 @@ def gen_histogram1():
                 marker = {'color':'#92b4f2'},
                 opacity = 0.75)
 
-    layout = Layout(
+    layout = dict(
             title = 'Time per link histogram',
+            margin = dict(l = 50, r = 50, t = 80, b = 50),
             xaxis = dict(
                     title = 'Time [s]'),
             yaxis = dict(
@@ -1091,13 +1113,14 @@ def gen_histogram_attempts():
             marker = dict(
                     color = '#92b4f2'))
     
-    layout = Layout(bargap = 0.2,
+    layout = dict(bargap = 0.2,
                     title = 'Nr. of attempts per link',
                     xaxis = dict(
                             type = 'category',
                             title = 'Nr. of attempts'),
                     yaxis = dict(
-                            title = 'Count'))
+                            title = 'Count'),
+                    margin = dict(l = 50, r = 50, t = 80, b = 50))
     return Figure(data = [trace], layout = layout)
 
 def gen_histogram2():
@@ -1122,13 +1145,14 @@ def gen_histogram2():
                          size = int(np.max([np.max(values1), np.max(values2)])/30)),
             marker = dict(
                     color = '#ffb653'))
-    layout = Layout(barmode = 'overlay',
+    layout = dict(barmode = 'overlay',
                     title = 'Pure time vs. wait time per link histogram',
                     showlegend = False,
                     xaxis = dict(
                             title = 'Time [s]'),
                     yaxis = dict(
-                            title = 'Count'))
+                            title = 'Count'),
+                    margin = dict(l = 50, r = 50, t = 80, b = 50))
     
     return Figure(data = [trace1, trace2], layout = layout)
 
@@ -1139,6 +1163,7 @@ def gen_distplot():
     labels =['pure time', 'wait time']
         
     fig = ff.create_distplot([values1, values2], labels, show_hist = False, colors = ['#92b4f2', '#ffb653'])
+    fig['layout']['margin'] = dict(l = 50, r = 50, t = 80, b = 50)
     fig['layout'].update(legend = Legend(orientation = 'h'), title = 'Pure time vs. wait time per link distplot')
     
     return fig
@@ -1149,9 +1174,10 @@ def gen_piechart():
     
     trace = Pie(labels = labels, values = values, marker = dict(colors = ['#92b4f2', '#ffb653']))
     
-    layout = Layout(
+    layout = dict(
             showlegend = False,
-            title = 'Overall wait time vs. pure time'
+            title = 'Overall wait time vs. pure time',
+            margin = dict(l = 50, r = 50, t = 80, b = 50)
             
     )
     
