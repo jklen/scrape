@@ -136,15 +136,3 @@ class proxyPool:
         for i in range(0, len(self.all_proxies)):
             all_proxies_todb[i]['_id'] = list(self.all_proxies.keys())[i]
         x = dbcollection.insert_many(all_proxies_todb)
-        
-    
-#   proxy:
-#       mean . .
-#       position [x] .
-#       position change [] .
-#       update_timestamp - NO, can be taken from timestamp_pool_update in poolmetrics
-#       response times[] .
-#       response_timestamp [] .
-#       current bandit [x]
-#       country
-#       scraped from

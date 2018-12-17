@@ -8,7 +8,7 @@ Created on Tue Sep 18 20:59:57 2018
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from plotly.graph_objs import Bar, Figure, Scatter, Line, Marker, Layout, Histogram, Pie, Legend, Box
+from plotly.graph_objs import Bar, Figure, Scatter, Histogram, Pie, Box
 import plotly.figure_factory as ff
 from dash.dependencies import Input, Output, Event, State
 import pymongo
@@ -30,8 +30,11 @@ app.config['suppress_callback_exceptions'] = True
 styles = {
     'pre': {
         'border': 'thin lightgrey solid',
-        'overflowX': 'scroll'
-    }
+        'overflowX': 'scroll'},
+    'tab':{'backgroundColor':'#fdfdfd',
+           'padding':'6px'},
+    'selected_tab':{'backgroundColor':'#d9eefc',
+                    'padding':'6px'}
 }
 
 app.layout = html.Div([
@@ -77,14 +80,14 @@ app.layout = html.Div([
     ], className = 'two columns'),
     html.Div([
         dcc.Tabs(id="tabs", children=[
-            dcc.Tab(label='Links overall', value = 'links_overall', children=[
-                html.Div([html.Div(id = 'overall_content'), 
+            dcc.Tab(label='Links overall', value = 'links_overall', style = styles['tab'], selected_style = styles['selected_tab'], children=[
+                html.Div(id = 'overall_content'), 
                         dcc.Interval(
                                 id = 'tab1_interval',
                                 interval = 2000,
-                                n_intervals = 0)])
+                                n_intervals = 0)
             ]),
-            dcc.Tab(label='Links time window', value = 'links_time', children=[
+            dcc.Tab(label='Links time window', value = 'links_time', style = styles['tab'], selected_style = styles['selected_tab'],  children=[
                 html.Div(id = 'links_time_charts', children = [
                     html.Div([
                             html.Div([
@@ -120,7 +123,7 @@ app.layout = html.Div([
                             n_intervals = 0)
                 ])
             ]),
-            dcc.Tab(label='Pool', value = 'pool', children=[
+            dcc.Tab(label='Pool', value = 'pool', style = styles['tab'], selected_style = styles['selected_tab'], children=[
                 html.Div(id = 'pool_charts', children = [
                     html.Div([
                             html.Div([
@@ -143,7 +146,7 @@ app.layout = html.Div([
                             n_intervals = 0)
                 ])
             ]),
-            dcc.Tab(label = 'Proxies', value = 'proxies', children = [
+            dcc.Tab(label = 'Proxies', value = 'proxies', style = styles['tab'], selected_style = styles['selected_tab'], children = [
                 html.Div(id = 'proxies_charts', children = [
                     html.Div([
                             html.Div([
@@ -267,7 +270,7 @@ def boxplot_proxies(interval, clicked_bandit, window, pradio):
                   yaxis2 = dict(overlaying = 'y',
                                 side = 'right',
                                 title = 'Nr. of times used'),
-                    margin = dict(l = 50, r = 50, t = 80, b = 50))
+                    margin = dict(l = 50, r = 80, t = 80, b = 50))
     
     return Figure(data = data, layout = layout)
 
@@ -294,7 +297,7 @@ def scatter_proxies(interval, clicked_bandit, window, pradio):
     data = [Scatter(x = proxy['x'], y = proxy['y'], name = proxy['name'], line = {'width':1}, marker = {'size':5}, mode = 'lines+markers') for proxy in proxy_data]
     layout = dict(title = 'Proxies response times in bandit ' + str(clicked_bandit),
                   yaxis = dict(title = 'Response time [s]'),
-                  margin = dict(l = 50, r = 50, t = 80, b = 50))
+                  margin = dict(l = 50, r = 80, t = 80, b = 50))
     
     return Figure(data = data, layout = layout)
 
@@ -456,7 +459,7 @@ def bar_bandit_chosennr(interval, val):
             marker = dict(
                     color = '#92b4f2'))
     
-    layout = Layout(bargap = 0.2,
+    layout = dict(bargap = 0.2,
                     title = 'How much each bandit was chosen',
                     xaxis = dict(
                             type = 'category',
@@ -695,43 +698,53 @@ def display_relay_data(r):
 
 @app.callback(Output('interval_button', 'children'), [Input('interval_button', 'n_clicks')])
 def update_button(clicks):
-    #if clicks != None:
+    if clicks:
         if clicks % 2 == 1:
             return 'Start refresh'
         elif clicks % 2 == 0:
             return 'Stop refresh'
+    else:
+        return 'Stop refresh'
 
 @app.callback(Output('tab1_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval(clicks):
-    #if clicks != None:
+    if clicks != None:
         if clicks % 2 == 1:
             return 600000
         elif clicks % 2 == 0:
             return 2000
+    else:
+        return 2000
 
 @app.callback(Output('tab2_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval2(clicks):
-    #if clicks != None:
+    if clicks:
         if clicks % 2 == 1:
             return 600000
         elif clicks % 2 == 0:
             return 2000
+    else:
+        return 2000
 
 @app.callback(Output('tab3_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval3(clicks):
-    #if clicks != None:
+    if clicks:
         if clicks % 2 == 1:
             return 600000
         elif clicks % 2 == 0:
             return 2000
+    else:
+        return 2000
 
 @app.callback(Output('tab4_interval', 'interval'), [Input('interval_button', 'n_clicks')])
 def stop_interval4(clicks):
-    #if clicks != None:
+    if clicks:
         if clicks % 2 == 1:
             return 600000
         elif clicks % 2 == 0:
             return 2000
+    else:
+        return 2000
 
 @app.callback(Output('overall_content', 'children'), [Input('tabs', 'value'), Input('tab1_interval', 'n_intervals')])
 def content_links_overall(selected_tab, interval):
@@ -1064,7 +1077,7 @@ def gen_histogram1():
             yaxis = dict(
                     title = 'Count'),
             shapes= [dict(type =  'line',
-                     line = Line(dash = 'dash',
+                     line = dict(dash = 'dash',
                                    width = 5,
                                    color = '#cc0000'),
                      opacity = 0.5,
@@ -1074,8 +1087,9 @@ def gen_histogram1():
                      yref ='y',
                      y0 = 0,
                      y1 = np.max(bin_val[0])),
+                                 
                     dict(type = 'line',
-                    line = Line(dash = 'dash',
+                    line = dict(dash = 'dash',
                                 width = 5),
                     opacity = 0.5,
                     x0 = median_val,
@@ -1164,7 +1178,7 @@ def gen_distplot():
         
     fig = ff.create_distplot([values1, values2], labels, show_hist = False, colors = ['#92b4f2', '#ffb653'])
     fig['layout']['margin'] = dict(l = 50, r = 50, t = 80, b = 50)
-    fig['layout'].update(legend = Legend(orientation = 'h'), title = 'Pure time vs. wait time per link distplot')
+    fig['layout'].update(legend = dict(orientation = 'h'), title = 'Pure time vs. wait time per link distplot')
     
     return fig
 
