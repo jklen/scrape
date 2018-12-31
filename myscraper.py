@@ -182,18 +182,28 @@ class TopRealityAd:
             if self.properties['Cena'].strip() == 'cena dohodou':
                 self.properties['Cena dohodou'] = True
                 del(self.properties['Cena'])
+            elif self.properties['Cena'].strip() == 'cena v RK':
+                self.properties['Cena dohodou'] = False
+                self.properties['Cena neznama'] = True
+                del(self.properties['Cena'])
             else:
                 self.properties['Cena dohodou'] = False
                 self.properties['Cena'] = float(self.properties['Cena'].split(',')[0].replace(' ', ''))
                 self.properties['Provízia v cene'] = 'Nezname'
-                self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+                if 'empty1' in self.properties:
+                    self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
 
         elif 'Cena vrátane provízie' in self.properties:
-            self.properties['Cena dohodou'] = False
-            self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
-            self.properties['Provízia v cene'] = 'Ano'
-            self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
-            del(self.properties['Cena vrátane provízie'])
+            if self.properties['Cena vrátane provízie'].strip() == 'cena dohodou':
+                self.properties['Cena dohodou'] = True
+                del(self.properties['Cena vrátane provízie'])
+            else:
+                self.properties['Cena dohodou'] = False
+                self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
+                self.properties['Provízia v cene'] = 'Ano'
+                if 'empty1' in self.properties:
+                    self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+                del(self.properties['Cena vrátane provízie'])
         elif 'Cena bez provízie' in self.properties:
             if self.properties['Cena bez provízie'].strip() == 'cena dohodou':
                 self.properties['Cena dohodou'] = True
@@ -202,7 +212,8 @@ class TopRealityAd:
                 self.properties['Cena dohodou'] = False
                 self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
                 self.properties['Provízia v cene'] = 'Nie'
-                self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+                if 'empty1' in self.properties:
+                    self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
                 del(self.properties['Cena bez provízie'])
 
         if 'Hypotéka' in self.properties:
