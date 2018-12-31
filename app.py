@@ -42,7 +42,7 @@ def lay():
                         ]),
                         html.Div(id = 'tab23_prompts', style = {'display':'none'}, children = [
                                 html.P('Moving average', style = {'font-weight':'bold'}),
-                                dcc.Input(id = 'ma_input', type = 'number', value = 5, size = 3, style = {'margin-bottom':'20px'}),
+                                dcc.Input(id = 'ma_input', type = 'number', value = 10, size = 3, step = 5, style = {'margin-bottom':'20px'}),
                                 html.P('X axis type', style = {'font-weight':'bold'}),
                                 dcc.RadioItems(id = 'xaxis', options = [{'label':'Number', 'value':'nr'},
                                                                         {'label':'Date', 'value':'date'}],
@@ -50,7 +50,7 @@ def lay():
                                                 labelStyle = {'display':'inline-block'}, style = {'margin-bottom':'20px'}),
                                 dcc.Checklist(id = 'limit_check', options = [{'label':'Limit visible data', 'value':'limit'}],
                                               values = ['limit']),
-                                dcc.Input(id = 'linput', type = 'number', value = 200)
+                                dcc.Input(id = 'linput', type = 'number', value = 200, step = 50)
                         ]),
                         html.Div(id = 'tab4_prompts', style = {'display':'none'}, children = [
                                 dcc.RadioItems(id = 'proxy_radio',
@@ -135,12 +135,12 @@ def content1_children(ts, data, tab):
     if tab == 'tab1':
         return html.Div([
             html.Div([
-                html.Div(id = 'tab1_chart1_div', children = [dcc.Graph(id = 'tab1_chart1', figure = tab1_chart1(ts, data))], className = 'six columns'),
-                html.Div(id = 'tab1_chart2_div', children = [dcc.Graph(id = 'tab1_chart2', figure = tab1_chart2(ts, data))], className = 'six columns')
+                html.Div(id = 'tab1_chart1_div', children = [dcc.Graph(id = 'tab1_chart1', figure = tab1_chart1(data))], className = 'six columns'),
+                html.Div(id = 'tab1_chart2_div', children = [dcc.Graph(id = 'tab1_chart2', figure = tab1_chart2(data))], className = 'six columns')
             ], className = 'row'),
             html.Div([
-                html.Div(id = 'tab1_chart3_div', children = [dcc.Graph(id = 'tab1_chart3', figure = tab1_chart3(ts, data))], className = 'six columns'),
-                html.Div(id = 'tab1_chart4_div', children = [dcc.Graph(id = 'tab1_chart4', figure = tab1_chart4(ts, data))], className = 'six columns')
+                html.Div(id = 'tab1_chart3_div', children = [dcc.Graph(id = 'tab1_chart3', figure = tab1_chart3(data))], className = 'six columns'),
+                html.Div(id = 'tab1_chart4_div', children = [dcc.Graph(id = 'tab1_chart4', figure = tab1_chart4(data))], className = 'six columns')
             ], className = 'row')
         ])
         
@@ -157,13 +157,13 @@ def content2_children(ts, ma, xtype, linput, lcheck, data, tab):
     if tab == 'tab2':
         return html.Div([
                     html.Div([
-                        html.Div(id = 'tab2_chart1_div', children = [dcc.Graph(id = 'tab2_chart1', figure = tab2_chart1(ts, ma, xtype, linput, lcheck, data))], className = 'six columns'),
-                        html.Div(id = 'tab2_chart2_div', children = [dcc.Graph(id = 'tab2_chart2', figure = tab2_chart2(ts, ma, xtype, linput, lcheck, data))], className = 'six columns')
+                        html.Div(id = 'tab2_chart1_div', children = [dcc.Graph(id = 'tab2_chart1', figure = tab2_chart1(ma, xtype, linput, lcheck, data))], className = 'six columns'),
+                        html.Div(id = 'tab2_chart2_div', children = [dcc.Graph(id = 'tab2_chart2', figure = tab2_chart2(ma, xtype, linput, lcheck, data))], className = 'six columns')
                         
                     ], className = 'row'),
                     html.Div([
-                        html.Div(id = 'tab2_chart3_div', children = [dcc.Graph(id = 'tab2_chart3', figure = tab2_chart3(ts, xtype, linput, lcheck, data))], className = 'six columns'),
-                        html.Div(id = 'tab2_chart4_div', children = [dcc.Graph(id = 'tab2_chart4', figure = tab2_chart4(ts, xtype, linput, lcheck, data))], className = 'six columns')
+                        html.Div(id = 'tab2_chart3_div', children = [dcc.Graph(id = 'tab2_chart3', figure = tab2_chart3(xtype, linput, lcheck, data))], className = 'six columns'),
+                        html.Div(id = 'tab2_chart4_div', children = [dcc.Graph(id = 'tab2_chart4', figure = tab2_chart4(xtype, linput, lcheck, data))], className = 'six columns')
                         
                     ], className = 'row')
                 ])
@@ -181,7 +181,7 @@ def content3_children(ts, ma, xtype, linput, lcheck, data, tab):
     if tab == 'tab3':
         return html.Div([
                     html.Div([
-                        html.Div(id = 'tab3_chart1_div', children = [dcc.Graph(id = 'tab3_chart1', figure = tab3_chart1(ts, linput, lcheck, data))], className = 'six columns'),
+                        html.Div(id = 'tab3_chart1_div', children = [dcc.Graph(id = 'tab3_chart1', figure = tab3_chart1(linput, lcheck, data))], className = 'six columns'),
                         html.Div(id = 'tab3_chart2_div', children = [dcc.Graph(id = 'tab3_chart2', figure = tab3_chart2(data))], className = 'six columns')
                         
                     ], className = 'row'),
@@ -213,7 +213,7 @@ def content4_children(ts, window, pradio, clicked_bandit, data, tab):
                     ], className = 'row')
                 ])
 
-def tab2_chart1(ts, ma, xtype, linput, lcheck, data):
+def tab2_chart1(ma, xtype, linput, lcheck, data):
     print('tab2 chart1')
     if data:        
         x = data['timestamp']
@@ -330,7 +330,7 @@ def tab2_chart1(ts, ma, xtype, linput, lcheck, data):
     else:
         raise PreventUpdate
 
-def tab2_chart2(ts, ma, xtype, linput, lcheck, data):
+def tab2_chart2(ma, xtype, linput, lcheck, data):
     print('tab2 chart2')
     if data:        
         x = data['timestamp']
@@ -476,7 +476,7 @@ def tab2_chart2(ts, ma, xtype, linput, lcheck, data):
     else:
         raise PreventUpdate
         
-def tab2_chart3(ts, xtype, linput, lcheck, data):
+def tab2_chart3(xtype, linput, lcheck, data):
     print('tab2 chart3')
     if data:        
         x = data['timestamp']
@@ -546,7 +546,7 @@ def tab2_chart3(ts, xtype, linput, lcheck, data):
     else:
         raise PreventUpdate
         
-def tab2_chart4(ts, xtype, linput, lcheck, data):
+def tab2_chart4(xtype, linput, lcheck, data):
     print('tab2 chart4')
     if data:        
         x = data['timestamp']
@@ -672,7 +672,7 @@ def tab2_chart4(ts, xtype, linput, lcheck, data):
     else:
         raise PreventUpdate
 
-def tab1_chart1(ts, data):
+def tab1_chart1(data):
     print('tab1 chart 1')
     #print('to chart', type(data), ts)
     if data:
@@ -734,7 +734,7 @@ def tab1_chart1(ts, data):
     else:
         raise PreventUpdate
 
-def tab1_chart2(ts, data):
+def tab1_chart2(data):
     print('tab1 chart 2')
     if data:
         counted_vals = Counter(data['attempts'])
@@ -761,7 +761,7 @@ def tab1_chart2(ts, data):
     else:
         raise PreventUpdate
         
-def tab1_chart3(ts, data):
+def tab1_chart3(data):
     print('tab1 chart3')
     if data:        
         values1 = data['pure time']
@@ -797,7 +797,7 @@ def tab1_chart3(ts, data):
     else:
         raise PreventUpdate
         
-def tab1_chart4(ts, data):
+def tab1_chart4(data):
     print('tab1 chart4')
     if data:        
         values1 = data['pure time']
@@ -813,7 +813,7 @@ def tab1_chart4(ts, data):
     else:
         raise PreventUpdate
         
-def tab3_chart1(ts, linput, lcheck, data):
+def tab3_chart1(linput, lcheck, data):
     print('tab3 chart1')
     if data:        
         meansdf = pd.DataFrame(data['bandit_means'])
