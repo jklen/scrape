@@ -15,7 +15,6 @@ import json
 from dash.exceptions import PreventUpdate
 import time
 
-
 myclient = pymongo.MongoClient('mongodb://localhost:27017')
 scrapedb = myclient['scrapedb']
 adcollection_rmetrics = scrapedb['rmetrics']
@@ -1081,4 +1080,4 @@ def limit_input(check):
     return to_return
 
 if __name__ == '__main__':
-    app.run_server(debug = True)
+    app.run_server(debug = True, host = '0.0.0.0', port = 8050)
