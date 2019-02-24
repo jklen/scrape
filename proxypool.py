@@ -14,6 +14,24 @@ import pandas as pd
 from bson.objectid import ObjectId
 
 def proxy_pool_test(proxy_pool, browser_list, requests_nr = 100):
+    """
+    Function to test proxy pool class on httpbin.org. Used for testing if proxy pool updates its attributes correctly.
+    
+    Parameters
+    ----------
+    proxy_pool : class proxyPool
+        Proxy pool to test.
+    browser_list : list(str)
+        List of browser user agents to send as headers in each request.
+    requests_nr : int
+        Number of requests to send. (default 100).
+    
+    Returns
+    -------
+    proxyPool
+        Returns same proxy pool as in input of this function, but with updated attributes.
+    """
+    
     url = 'https://httpbin.org/ip'
     proxy_pool = proxy_pool
     for i in range(requests_nr):
@@ -30,7 +48,55 @@ def proxy_pool_test(proxy_pool, browser_list, requests_nr = 100):
     return proxy_pool
 
 class proxyPool:
+    """
+    A class representing pool of proxies.
+    
+    Attributes
+    ----------
+    proxies_in_bandit : int
+        Number of proxies each bin (bandit) of the proxy pool should have.
+    proxy_for_bandits : list(list(str))
+        List of lists of proxies, which are assigned to each bandit.
+    all_proxies : dict
+        Dictonary of all proxies and all their metrics each time proxy pool was updated.
+    bandits : list(int)
+        List of integers, corresponding to ids of each bandit.
+    eps : float
+        Threshold used in the epsilon-greedy explore-exploit algorithm, when choosing the bandit and proxy.
+    bandit_means : list(list(float))
+        List of lists, which contain averages of proxies means of each bandit, each time the proxy pool was updated.
+    bandit_mins : list(list(float))
+        List of lists, which contain minimum values of proxies means of each bandit, each time the proxy pool was updated.
+    bandit_q1s : list(list(float))
+        List of lists, which contain values of 1st quartile of proxies means of each bandit, each time the proxy pool was updated.
+    bandit_medians : list(list(float))
+        List of lists, which contain median values of proxies means of each bandit, each time the proxy pool was updated.
+    bandit_q3s : list(list(float))
+        List of lists, which contain values of 3rd quartile of proxies means of each bandit, each time the proxy pool was updated.
+    bandit_maxs : list(list(float))
+        List of lists, which contain maximum values of proxies means of each bandit, each time the proxy pool was updated.
+    update_times : list(datetime)
+        List of timestamps when the proxy pool was updated.
+    bandits_chosennr : list(int)
+        List of bandit id's, which were chosen each time when choose_proxy method was called.
+    chosed_proxies : list(str)
+        List of proxies, which were chose each time when choose_proxy method was called.
+    ordered_proxies : list(str)
+        List of sorted proxies. Contains only proxy pool's current (not historical) values.        
+    """
+    
     def __init__(self, proxy_list, proxies_in_bandit, eps):
+        """
+        Parameters
+        ----------
+        proxy_list : list(str)
+            List of proxies from which the proxy pool is created
+        proxies_in_bandit : int
+            Number of proxies each bandit should contain. For example if proxy_list is 100, proxies_in_bandit is 10, the proxy pool
+            will contain 10 bandits with 10 proxies.
+        eps : float
+            Threshold which is used in the epsilon-greedy explore-exploit algorithm to choose bandit. (should have values between 0 an 1)
+        """
         self.proxies_in_bandit = proxies_in_bandit # nr of proxies in bandit
         self.proxy_for_bandits = [proxy_list[i:i + proxies_in_bandit] for i in range(0, len(proxy_list), proxies_in_bandit)]
         self.nr_of_bandits = len(self.proxy_for_bandits)
@@ -51,6 +117,17 @@ class proxyPool:
         self.chosed_proxies = []
                 
     def choose_proxy(self):
+        """
+        This method uses epsilon-greedy explore-exploit algorithm to choose a bandit and randomly one of it's proxies.
+        If a randomly generated number (between 0 and 1) is greater than eps, best performing bandit is chosen, if not,
+        randomly chosen bandit selected.
+        
+        Returns
+        -------
+        str
+            Returns a proxy.
+        
+        """
         p = random.random()
         if p < self.eps:
             #bandit = random.choice([i for i in self.bandits][1:]) # except the fastest bandit
@@ -65,6 +142,20 @@ class proxyPool:
         
         
     def update(self, proxy, response_time, window = 10):
+        """
+        Updates attributes of the proxy pool and its metrics.
+        
+        Parameters
+        ----------
+        proxy : str
+            Proxy which was used to send request.
+        response_time : float
+            Response time of the proxy which was used to send request
+        window : int
+            Window from which is the mean of proxies calculated, since proxies can change performance over time.
+            For example if set 10, last 10 values will be used for proxy mean calculation. This affects the oredering
+            of proxies in the pool and corresponding bandit assignment.
+        """
         print('Response time %d' % response_time)
         self.chosed_proxies.append(proxy)
         t = datetime.datetime.now()
@@ -111,6 +202,16 @@ class proxyPool:
                 self.all_proxies[proxy]['position_change'].append(d)
                 
     def writetodb_poolmetrics(self, dbcollection, nr_of_updates): # bude sum(ad.attempts)
+        """
+        Writes to mongodb collection all necessary proxy pool's metrics
+        
+        Parameters
+        ----------
+        dbcollection : mongodb collection
+            Collection where the data should be saved.
+        nr_of_updates : int
+            To the collection will be saved last nr_of_updates of proxy pool's updates.
+        """
         #   {'timestamp' self.update_times[-nr_of_updates], 'bandit_means': self.bandit_means[-nr_of_updates], '}
         ppos_change = [[self.all_proxies[p]['position_change'][-nr_of_updates:][i] for p in self.all_proxies.keys()] for i in range(0, len(self.all_proxies[list(self.all_proxies.keys())[0]]['position_change'][-nr_of_updates:]))]
         ppos_change_df = pd.DataFrame(ppos_change)
@@ -127,6 +228,14 @@ class proxyPool:
             
             
     def writetodb_proxies(self, dbcollection):
+        """
+        Writes to mongodb collection info about proxies in the pool.
+        
+        Parameters
+        ----------
+        dbcollection : mongodb collection
+            
+        """
         
         if dbcollection.count_documents({}) > 0:
             dbcollection.delete_many({})

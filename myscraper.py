@@ -23,7 +23,61 @@ import random
 import numpy as np
 
 class TopRealityAd:
+    """
+    A class representing one Ad on www.topreality.sk website
+    
+    
+    Attributes
+    ----------
+    url : str
+        Url of the Ad.
+    properties : dict
+        Ad properties.
+    text : str
+        Ad description text.
+    tags : list(str)
+        Ad tags.
+    energycert : str
+        Energy certificate value of the real estate.
+    gallerylinks : list(str)
+        Urls of Ads gallery pictures.
+    seller : dict
+        Contains information about seller/advertiser of the real estate Ad.
+    mapcoord : dict
+        Map coordinates of the real estate.
+    proxy_pool : class proxyPool
+        Pool of proxies used when scraping.
+    useragents_list : list(str)
+        List of user agents (browsers) used in headers when sending requests.
+    active : bool
+        If the real estate Ad is still active (is not deleted from topreality.sk) or not.
+    time_success : list(float)
+        Overall times in which content of each url was successfuly scraped (including urls of pictures, when set).
+    attempts : list(int)
+        Number of tries to successfuly scrape content of each url. Includes url of the ad and urls of the pictures (when set).
+    waits : list(float)
+        Each request is sent after some time calculated by wait() function. This list contains sum of these artificial wait times for each url.
+    timestamps : list(datetime)
+        Timestamps when each url was successfuly scraped.
+    soup : class BeatifulSoup
+        BeatifulSoup object of Ad url.
+    ad : dict
+        Contains all information about Ad grouped together into one dict, which are also audited and preprocessed.
+        
+    """
+    
     def __init__(self, url, proxy_pool, useragents_list):
+        """
+        Parameters
+        ----------
+        url : str
+            Url of the Ad.
+        proxy_pool : class proxyPool
+            Proxy pool used when sending requests
+        useragents_list : list(str)
+            List of user agents (browsers) used in headers when sending requests.
+        
+        """
         self.url = url
         self.properties = {}
         self.text = None
@@ -73,6 +127,10 @@ class TopRealityAd:
                 print('Top reality ad response successful, attempts: ' + str(attempts))
     
     def scrape_properties(self):
+        """
+        Scrapes all properties of the Ad.
+        """
+        
         i = 0
 
         for li in self.soup.find('div', {'class':'properties'}).ul.find_all('li'):
@@ -83,16 +141,28 @@ class TopRealityAd:
             self.properties[key] = li.strong.text
     
     def scrape_text(self):
+        """
+        Scrapes text of the ad
+        """
+        
         self.text = self.soup.find('p', {'itemprop':'description'}).text
     
-    def scrape_tags(self):        
+    def scrape_tags(self):
+        """
+        Scrapes tags of the ad, when present.
+        """
+        
         try:
             for a in self.soup.find('div', {'class':'detail-keywords'}).find_all('a'):
                 self.tags.append(a.text)
         except:
             pass
     
-    def scrape_energycert(self):        
+    def scrape_energycert(self):
+        """
+        Scrapes the energy certificate, if present.
+        """
+        
         try:
             self.energycert = self.soup.find('div', {'class':'energCert'}).div.span.text
         except:
@@ -100,6 +170,15 @@ class TopRealityAd:
     
     # put here check if picture is alrady downloaded
     def scrape_gallerylinks(self, savepics = True): # set timeout to request
+        """
+        Scrapes gallery links of the ad and saves the pictures if set.
+        
+        Parameters
+        ----------
+        savepics : bool
+            If set to True, pictures are saved into /data/pics/topreality folder. (default True)
+        """
+        
         self.gallerylinks.append('https://topreality.sk' + self.soup.find('div', {'class':'gallery'}).a['href'])
         
         try:
@@ -156,7 +235,11 @@ class TopRealityAd:
                                     success = True
                 
     
-    def scrape_seller(self):        
+    def scrape_seller(self):
+        """
+        Scrape info about seller/advertiser of the ad.
+        """
+        
         try:
             self.seller['name'] = self.soup.find('div', {'class':'contact'}).a.strong.text
             seller_regex = re.search('<br/{0,1}>(.*)<br/{0,1}>(.*)<br/{0,1}><br/{0,1}><span>Registrovaný na TopReality.sk<br/>od (.*)</span>', str(self.soup.find('div', {'class':'contact'})))
@@ -168,6 +251,10 @@ class TopRealityAd:
             self.seller['type'] = 'private'
             
     def scrape_mapcoords(self):
+        """
+        Scrape map coordinates of the real estate.
+        """
+        
         try:
             map_div_for_regex = self.soup.find('div', {'id':'map_canvas'})['data-kml']
             ad_map_coord_regex = re.search('lon=(\d{1,3}\.\d{2,20})&lat=(\d{1,3}\.\d{2,20})', map_div_for_regex)
@@ -177,6 +264,9 @@ class TopRealityAd:
             pass
             
     def correct_values(self):
+        """
+        Audit, preprocess and correct all scraped info, which is saved into self.ad dictionary.
+        """
                 
         if 'Cena' in self.properties:
             if self.properties['Cena'].strip() == 'cena dohodou':
@@ -253,6 +343,10 @@ class TopRealityAd:
                    'gallerydir':gal_dir}
     
     def scrape_all(self, savepics = True):
+        """
+        Call all above methods.
+        """
+        
         if self.active:
             self.scrape_properties()
             self.scrape_text()
@@ -264,17 +358,48 @@ class TopRealityAd:
             self.correct_values()
     
     def writetodb(self, dbcollection):
+        """
+        Write Ad data into mongodb collection.
+        
+        Parameters
+        ----------
+        dbcollection : mongodb collection
+            Collection where the data should be saved.
+        """
+        
         if self.active:
             self.ad['added to db timestamp'] = datetime.datetime.now()
             x = dbcollection.insert_one(self.ad)
     
     def writetodb_rmetrics(self, dbcollection):
+        """
+        Write all metrics regarding requests, urls, attempts, wait times etc. to mongodb collection.
+        
+        Parameters
+        ----------
+        dbcollection : mongodb collection
+            Collection where the data should be saved.
+        """
+        
         if self.active:
             #time_now = datetime.datetime.now()
             to_write = [{'timestamp':self.timestamps[i], 'time success':self.time_success[i], 'attempts':self.attempts[i], 'waits':self.waits[i], 'pure time':self.time_success[i] - self.waits[i]} for i in range(len(self.time_success))]
             x = dbcollection.insert_many(to_write)
 
 def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):
+    """
+    Using selenium (so when it is run, it opens a new firefox window), this function scrapes the most common user agents (browser headers).
+    
+    Parameters
+    ----------
+    agents : list(str)
+        Broser names to scrape. (default is 'chrome', 'firefox' and 'opera')
+    
+    Returns
+    -------
+    list(str)
+        Returns a list of browser headers
+    """
     
     driver = webdriver.Firefox()
     useragents_list = []
@@ -302,6 +427,15 @@ def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):
     
 
 def scrape_proxies():
+    """
+    Scrapes elite proxies from 3 websites: free-proxy.cz, gatherproxy.com and http://spys.one/free-proxy-list. Only proxies from Czech republic,
+    Slovak republic and Hungary are scraped. Selenium is used, so when this function is run, it opens a new firewox browser.
+    
+    Returns
+    -------
+    list
+        List of proxies.
+    """
     
     proxy_list = []
     
@@ -371,6 +505,21 @@ def scrape_proxies():
     return proxy_list
 
 def wait(minval = 0.5, maxval = 20, meanval = 2.5, std = 2.7):
+    """
+    Function draws a sample from normal probability distribution with specified parameters, to control its skewness.
+    
+    Parameters
+    ----------
+    minval : float
+        Minumum value. Default 0.5
+    maxval : float
+        Maximum value. Default 20
+    meanval : float
+        Average value. Default 2.5
+    std : float
+        Standard deviation. Default 2.7
+    """
+    
     dist = scipy.stats.truncnorm((minval - meanval) / std, (maxval - meanval) / std, loc = meanval, scale = std)
     value = dist.rvs()
     print('Waiting ' + str(value) + ' s.')
@@ -378,6 +527,21 @@ def wait(minval = 0.5, maxval = 20, meanval = 2.5, std = 2.7):
     return(value)
 
 def scrape_topreality_links(region = None, pages_to_scrape = 5):
+    """
+    Scrapes Ad urls on topreality.sk website, with focus on flats all sizes.
+    
+    Paramters
+    ---------
+    region : str
+        Region to filter. For example 'Bratislavsky kraj'. (Default None - results are not filter by location/region)
+    pages_to_scrape : int, or 'all'
+        Number of pages to scrape the links. Currently there are 15 ads/urls on a page. If 'all', urls on all pages are scraped. (Default 5)
+    
+    Returns
+    -------
+    list
+        List of Ad urls.
+    """
     
     driver = webdriver.Firefox()
     time.sleep(4)
