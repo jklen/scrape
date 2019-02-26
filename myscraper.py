@@ -409,7 +409,7 @@ def scrape_useragents(agents = ['chrome', 'firefox', 'opera']):
         page_nr = 1
         very_common = True # scrape only very common agent names
         while very_common:
-            wait()
+            wait(7, 20, 10, 7)
             url = 'https://developers.whatismybrowser.com/useragents/explore/software_name/' + agent + '/' + str(page_nr)
             driver.get(url)
             soup = BeautifulSoup(driver.page_source, 'html.parser')

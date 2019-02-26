@@ -64,25 +64,25 @@ class proxyPool:
     eps : float
         Threshold used in the epsilon-greedy explore-exploit algorithm, when choosing the bandit and proxy.
     bandit_means : list(list(float))
-        List of lists, which contain averages of proxies means of each bandit, each time the proxy pool was updated.
+        List of lists, which contain averages of proxies means of each bandit, each time the proxy pool is updated.
     bandit_mins : list(list(float))
-        List of lists, which contain minimum values of proxies means of each bandit, each time the proxy pool was updated.
+        List of lists, which contain minimum values of proxies means of each bandit, each time the proxy pool is updated.
     bandit_q1s : list(list(float))
-        List of lists, which contain values of 1st quartile of proxies means of each bandit, each time the proxy pool was updated.
+        List of lists, which contain values of 1st quartile of proxies means of each bandit, each time the proxy pool is updated.
     bandit_medians : list(list(float))
-        List of lists, which contain median values of proxies means of each bandit, each time the proxy pool was updated.
+        List of lists, which contain median values of proxies means of each bandit, each time the proxy pool is updated.
     bandit_q3s : list(list(float))
-        List of lists, which contain values of 3rd quartile of proxies means of each bandit, each time the proxy pool was updated.
+        List of lists, which contain values of 3rd quartile of proxies means of each bandit, each time the proxy pool is updated.
     bandit_maxs : list(list(float))
-        List of lists, which contain maximum values of proxies means of each bandit, each time the proxy pool was updated.
+        List of lists, which contain maximum values of proxies means of each bandit, each time the proxy pool is updated.
     update_times : list(datetime)
-        List of timestamps when the proxy pool was updated.
+        List of timestamps when the proxy pool is updated.
     bandits_chosennr : list(int)
-        List of bandit id's, which were chosen each time when choose_proxy method was called.
+        List of bandit id's, which were chosen each time when choose_proxy method is called.
     chosed_proxies : list(str)
-        List of proxies, which were chose each time when choose_proxy method was called.
+        List of proxies, which were chosen each time when choose_proxy method is called.
     ordered_proxies : list(str)
-        List of sorted proxies. Contains only proxy pool's current (not historical) values.        
+        List of sorted proxies according their response times mean in given window. Contains only proxy pool's current (not historical) values.        
     """
     
     def __init__(self, proxy_list, proxies_in_bandit, eps):
