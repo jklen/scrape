@@ -460,9 +460,9 @@ def scrape_proxies():
         print('Scraping free-proxy successful')
     
     # http://www.gatherproxy.com
-    urls = ['http://www.gatherproxy.com/proxylist/country/?c=Czech%20Republic',
-            'http://www.gatherproxy.com/proxylist/country/?c=Slovak%20Republic',
-            'http://www.gatherproxy.com/proxylist/country/?c=Hungary']
+    urls = ['http://www.proxygather.com/proxylist/country/?c=Czech%20Republic',
+            'http://www.proxygather.com/proxylist/country/?c=Slovak%20Republic',
+            'http://www.proxygather.com/proxylist/country/?c=Hungary']
     for url in urls:
         wait()
         try:
@@ -493,7 +493,7 @@ def scrape_proxies():
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         
         for tr in soup.find_all('tr', {'class':['spy1x', 'spy1xx']})[2:]:
-            soup = tr.td.find_all('font')[1]
+            soup = tr.td.find_all('font')[0]
             proxy_regex = re.search('class="spy14">(\d{1,3}\.\d{1,3}\.\d{1,3}).*class="spy2">:</font>(\d{1,5})', str(soup))
             proxy_ip_port = proxy_regex[1] + ':' + proxy_regex[2]
             proxy_list.append(proxy_ip_port)
@@ -555,17 +555,22 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
     button_druh.click() # vyvolat popup s druhom nehnutelnosti
     
     time.sleep(4)
-    select_byt = driver.find_element_by_xpath("//ul[@class='ui-multiselect-checkboxes ui-helper-reset']/li[1]")
+    select_byt = driver.find_element_by_xpath("//ul[@class='ui-multiselect-checkboxes ui-helper-reset']/li/a[1]")
     select_byt.click() # druh nehnutelnosti - byty
     # ---
     # ---
     time.sleep(1)
-    hover = ActionChains(driver).move_to_element(select_byt) # hover away from the popup
-    hover.perform()
+    button_druh.click()
+    #time.sleep(1)
+    #hover = ActionChains(driver).move_to_element(select_byt) # hover away from the popup
+    #hover.perform()
     time.sleep(2)
+	
+    cookies_ok = driver.find_element_by_id('cookiesOk')
+    cookies_ok.click()
     
     if region != None:
-        select_lokalita = driver.find_element_by_xpath("//div[@id='n_srch_obec_suggest']/div[@class='ms-sel-ctn']/input[@placeholder='Okres, obec, ulica']")
+        select_lokalita = driver.find_element_by_xpath("//div[@id='n_srch_obec_suggest']/div[@class='ms-sel-ctn']/input[@placeholder='Okres, obec']")
         select_lokalita.click()
         time.sleep(1)
         select_lokalita.send_keys(region)
@@ -601,7 +606,8 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
     # close 'zasielat ponuky e-mailom'
     
     time.sleep(2)
-    button_close = driver.find_element_by_xpath("//button[@title='Close']")
+    # button_close = driver.find_element_by_xpath("//button[@title='Close']")
+    button_close = driver.find_element_by_xpath("//button[@class='btn btn-light']")
     button_close.click()
     
     # get links on a page - 15 real estate ads
@@ -609,13 +615,20 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
     
     for i in range(1, pages):
         if i >= 2:
-            button_page = driver.find_element_by_xpath("//div[@class='paginatorContainer']//div[@class='paginator']//a[text()='" + str(i) + "']")
-            button_page.click()
+            # button_page = driver.find_element_by_xpath("//div[@class='paginatorContainer']//div[@class='paginator']//a[text()='" + str(i) + "']")
+            # button_page.click()
+			
+            paginator_soup = driver.find_element_by_xpath("//div[contains(@class,'col-12') and contains(@class, 'paginatorContainerDown')]")
+            page = paginator_soup.find_element_by_xpath(f"//li[contains(@class, 'page-item') and contains(@class, 'page-item-number')]//a[text()='{i}']")
+            page.click()
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         listing_container = soup.find('div', {'class':'listing'})
-        for d in listing_container.find_all('div', {'class':re.compile(r'^estate')}):
-            links.append(d.find('div', {'class':'thumb'}).a['href'])
+        # for d in listing_container.find_all('div', {'class':re.compile(r'^estate')}):
+        #    links.append(d.find('div', {'class':'thumb'}).a['href'])
+			
+        for h2 in listing_container.find_all('h2', {'class':['card-title', 'mb-0', 'mt-0', 'mt-md-2', 'mt-lg-0' ,'pt-3' ,'pt-sm-0']}):
+            links.append(h2.a['href'])
         print('Page ' + str(i) + '/' + str(pages - 1) + ' done')
         wait(minval = 1.5, maxval = 10, meanval = 2.5, std = 2)
     
