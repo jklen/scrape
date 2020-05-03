@@ -26,7 +26,7 @@ proxy_pool = proxyPool(proxy_list, 10, 0.4)
 #pp = proxy_pool_test(proxy_pool, browser_list, 10)
 links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 20)
 
-for i, link in enumerate(links):
+for i, link in enumerate(links[:50]):
     print('Scraping link %d of %d' %(i, len(links)))
     ad = TopRealityAd(link, proxy_pool, browser_list)
     ad.scrape_all(savepics = False)

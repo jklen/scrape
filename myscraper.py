@@ -133,11 +133,11 @@ class TopRealityAd:
         
         i = 0
 
-        for li in self.soup.find('div', {'class':'properties'}).ul.find_all('li'):
-            key = li.span.text
-            if key == '\xa0':
-                key = 'empty' + str(i)
-                i += 1
+        for i, li in enumerate(self.soup.find('div', {'class':'properties'}).ul.find_all('li')):
+            try:
+                key = li.span.text
+            except:
+                key = f'empty{i}'
             self.properties[key] = li.strong.text
     
     def scrape_text(self):
@@ -145,7 +145,7 @@ class TopRealityAd:
         Scrapes text of the ad
         """
         
-        self.text = self.soup.find('p', {'itemprop':'description'}).text
+        self.text = self.soup.find('p', {'class':'descriptionTextFade'}).text
     
     def scrape_tags(self):
         """
@@ -268,60 +268,60 @@ class TopRealityAd:
         Audit, preprocess and correct all scraped info, which is saved into self.ad dictionary.
         """
                 
-        if 'Cena' in self.properties:
-            if self.properties['Cena'].strip() == 'cena dohodou':
-                self.properties['Cena dohodou'] = True
-                del(self.properties['Cena'])
-            elif self.properties['Cena'].strip() == 'cena v RK':
-                self.properties['Cena dohodou'] = False
-                self.properties['Cena neznama'] = True
-                del(self.properties['Cena'])
-            else:
-                self.properties['Cena dohodou'] = False
-                self.properties['Cena'] = float(self.properties['Cena'].split(',')[0].replace(' ', ''))
-                self.properties['Provízia v cene'] = 'Nezname'
-                if 'empty1' in self.properties:
-                    self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+        # if 'Cena' in self.properties:
+        #     if self.properties['Cena'].strip() == 'cena dohodou':
+        #         self.properties['Cena dohodou'] = True
+        #         del(self.properties['Cena'])
+        #     elif self.properties['Cena'].strip() == 'cena v RK':
+        #         self.properties['Cena dohodou'] = False
+        #         self.properties['Cena neznama'] = True
+        #         del(self.properties['Cena'])
+        #     else:
+        #         self.properties['Cena dohodou'] = False
+        #         self.properties['Cena'] = float(self.properties['Cena'].split(',')[0].replace(' ', ''))
+        #         self.properties['Provízia v cene'] = 'Nezname'
+        #         if 'empty1' in self.properties:
+        #             self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
 
-        elif 'Cena vrátane provízie' in self.properties:
-            if self.properties['Cena vrátane provízie'].strip() == 'cena dohodou':
-                self.properties['Cena dohodou'] = True
-                del(self.properties['Cena vrátane provízie'])
-            else:
-                self.properties['Cena dohodou'] = False
-                self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
-                self.properties['Provízia v cene'] = 'Ano'
-                if 'empty1' in self.properties:
-                    self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
-                del(self.properties['Cena vrátane provízie'])
-        elif 'Cena bez provízie' in self.properties:
-            if self.properties['Cena bez provízie'].strip() == 'cena dohodou':
-                self.properties['Cena dohodou'] = True
-                del(self.properties['Cena bez provízie'])
-            else:
-                self.properties['Cena dohodou'] = False
-                self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
-                self.properties['Provízia v cene'] = 'Nie'
-                if 'empty1' in self.properties:
-                    self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
-                del(self.properties['Cena bez provízie'])
+        # elif 'Cena vrátane provízie' in self.properties:
+        #     if self.properties['Cena vrátane provízie'].strip() == 'cena dohodou':
+        #         self.properties['Cena dohodou'] = True
+        #         del(self.properties['Cena vrátane provízie'])
+        #     else:
+        #         self.properties['Cena dohodou'] = False
+        #         self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
+        #         self.properties['Provízia v cene'] = 'Ano'
+        #         if 'empty1' in self.properties:
+        #             self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+        #         del(self.properties['Cena vrátane provízie'])
+        # elif 'Cena bez provízie' in self.properties:
+        #     if self.properties['Cena bez provízie'].strip() == 'cena dohodou':
+        #         self.properties['Cena dohodou'] = True
+        #         del(self.properties['Cena bez provízie'])
+        #     else:
+        #         self.properties['Cena dohodou'] = False
+        #         self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
+        #         self.properties['Provízia v cene'] = 'Nie'
+        #         if 'empty1' in self.properties:
+        #             self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+        #         del(self.properties['Cena bez provízie'])
 
-        if 'Hypotéka' in self.properties:
-            self.properties['Hypotéka'] = float(self.properties['Hypotéka'].split(' ')[1])
-        if 'Poschodie' in self.properties:
-            self.properties['Počet poschodí'] = int(self.properties['Poschodie'].split('/')[1].strip())
-            self.properties['Poschodie'] = int(self.properties['Poschodie'].split('/')[0].strip())
-        if 'Úžitková plocha' in self.properties:
-            self.properties['Úžitková plocha v m2'] = float(self.properties['Úžitková plocha'].split(' ')[0])
-            del(self.properties['Úžitková plocha'])
-        self.properties['Link s id'] = self.properties.pop('empty1') if  'empty1' in self.properties else self.properties.pop('empty0')
-        self.properties['Aktualizácia'] = datetime.datetime.strptime(self.properties['Aktualizácia'], '%d.%m.%Y %H:%M:%S')
-        if 'empty0' in self.properties:
-            del(self.properties['empty0'])
-        if 'name' in self.seller:
-            self.seller['name'] = self.seller['name'].strip(u'\u200b')
-        if 'since' in self.seller:
-            self.seller['since'] = datetime.datetime.strptime(self.seller['since'], '%d.%m.%Y')
+        # if 'Hypotéka' in self.properties:
+        #     self.properties['Hypotéka'] = float(self.properties['Hypotéka'].split(' ')[1])
+        # if 'Poschodie' in self.properties:
+        #     self.properties['Počet poschodí'] = int(self.properties['Poschodie'].split('/')[1].strip())
+        #     self.properties['Poschodie'] = int(self.properties['Poschodie'].split('/')[0].strip())
+        # if 'Úžitková plocha' in self.properties:
+        #     self.properties['Úžitková plocha v m2'] = float(self.properties['Úžitková plocha'].split(' ')[0])
+        #     del(self.properties['Úžitková plocha'])
+        # self.properties['Link s id'] = self.properties.pop('empty1') if  'empty1' in self.properties else self.properties.pop('empty0')
+        # self.properties['Aktualizácia'] = datetime.datetime.strptime(self.properties['Aktualizácia'], '%d.%m.%Y %H:%M:%S')
+        # if 'empty0' in self.properties:
+        #     del(self.properties['empty0'])
+        # if 'name' in self.seller:
+        #     self.seller['name'] = self.seller['name'].strip(u'\u200b')
+        # if 'since' in self.seller:
+        #     self.seller['since'] = datetime.datetime.strptime(self.seller['since'], '%d.%m.%Y')
         
         # put all info into one dictionary
         
@@ -334,13 +334,14 @@ class TopRealityAd:
         
         self.ad = {'scraped timestamp':datetime.datetime.now(),
                    'properties':self.properties,
-                   'pictureslinks':self.gallerylinks,
+                   #'pictureslinks':self.gallerylinks,
                    'text':self.text,
                    'tags':self.tags,
-                   'seller':self.seller,
-                   'energycert':self.energycert,
+                   #'seller':self.seller,
+                   #'energycert':self.energycert,
                    'mapcoord':self.mapcoord,
-                   'gallerydir':gal_dir}
+                   #'gallerydir':gal_dir
+				   }
     
     def scrape_all(self, savepics = True):
         """
@@ -351,9 +352,9 @@ class TopRealityAd:
             self.scrape_properties()
             self.scrape_text()
             self.scrape_tags()
-            self.scrape_energycert()
-            self.scrape_gallerylinks(savepics)
-            self.scrape_seller()
+            #self.scrape_energycert()
+            #self.scrape_gallerylinks(savepics)
+            #self.scrape_seller()
             self.scrape_mapcoords()
             self.correct_values()
     
@@ -476,28 +477,37 @@ def scrape_proxies():
             print('Scraping %s successful' % url)
     
     # http://spys.one/free-proxy-list/SK/
-    try:
-        driver.get('http://spys.one/free-proxy-list/SK/')
-    except:
-        print('spys.one not available')
-    else:
-        select_proxy_type = Select(driver.find_element_by_id('xf1'))
-        select_proxy_type.select_by_value('4')  # high anonymous proxy
-        wait()
-        select_ssl = Select(driver.find_element_by_id('xf2'))
-        select_ssl.select_by_value('1') # https
-        wait()
-        select_http = Select(driver.find_element_by_id('xf5'))
-        select_http.select_by_value('1') 
-        
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
-        for tr in soup.find_all('tr', {'class':['spy1x', 'spy1xx']})[2:]:
-            soup = tr.td.find_all('font')[0]
-            proxy_regex = re.search('class="spy14">(\d{1,3}\.\d{1,3}\.\d{1,3}).*class="spy2">:</font>(\d{1,5})', str(soup))
-            proxy_ip_port = proxy_regex[1] + ':' + proxy_regex[2]
-            proxy_list.append(proxy_ip_port)
-        print('Scraping spys.one successful')
+	
+    urls = ['http://spys.one/free-proxy-list/DE/',
+		 'http://spys.one/free-proxy-list/CZ/',
+		 'http://spys.one/free-proxy-list/SK/',
+		 'http://spys.one/free-proxy-list/HU/',
+		 'http://spys.one/free-proxy-list/PL/']
+	
+    for url in urls:
+		
+	    try:
+	        driver.get(url)
+	    except:
+	        print('spys.one not available')
+	    else:
+	        select_proxy_type = Select(driver.find_element_by_id('xf1'))
+	        select_proxy_type.select_by_value('4')  # high anonymous proxy
+	        wait()
+	        select_ssl = Select(driver.find_element_by_id('xf2'))
+	        select_ssl.select_by_value('1') # https
+	        wait()
+	        select_http = Select(driver.find_element_by_id('xf5'))
+	        select_http.select_by_value('1') 
+	        
+	        soup = BeautifulSoup(driver.page_source, 'html.parser')
+	        
+	        for tr in soup.find_all('tr', {'class':['spy1x', 'spy1xx']})[2:]:
+	            soup = tr.td.find_all('font')[0]
+	            proxy_regex = re.search('class="spy14">(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}).*class="spy2">:</font>(\d{1,5})', str(soup))
+	            proxy_ip_port = proxy_regex[1] + ':' + proxy_regex[2]
+	            proxy_list.append(proxy_ip_port)
+	        print(f'Scraping {url} successful')
     
     proxy_list = list(set((proxy_list)))
     driver.close()
