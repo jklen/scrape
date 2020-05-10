@@ -138,7 +138,9 @@ class TopRealityAd:
                 key = li.span.text
             except:
                 key = f'empty{i}'
-            self.properties[key] = li.strong.text
+				
+            if key != 'Hypotéka':
+                self.properties[key] = li.strong.text
     
     def scrape_text(self):
         """
@@ -268,43 +270,101 @@ class TopRealityAd:
         Audit, preprocess and correct all scraped info, which is saved into self.ad dictionary.
         """
                 
-        # if 'Cena' in self.properties:
-        #     if self.properties['Cena'].strip() == 'cena dohodou':
-        #         self.properties['Cena dohodou'] = True
-        #         del(self.properties['Cena'])
-        #     elif self.properties['Cena'].strip() == 'cena v RK':
-        #         self.properties['Cena dohodou'] = False
-        #         self.properties['Cena neznama'] = True
-        #         del(self.properties['Cena'])
-        #     else:
-        #         self.properties['Cena dohodou'] = False
-        #         self.properties['Cena'] = float(self.properties['Cena'].split(',')[0].replace(' ', ''))
-        #         self.properties['Provízia v cene'] = 'Nezname'
-        #         if 'empty1' in self.properties:
-        #             self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
+        if 'Cena' in self.properties:
+            if self.properties['Cena'].strip() == 'cena dohodou':
+                self.properties['Cena dohodou'] = True
+                del(self.properties['Cena'])
+            elif self.properties['Cena'].strip() == 'cena v RK':
+                self.properties['Cena dohodou'] = False
+                self.properties['Cena neznama'] = True
+                del(self.properties['Cena'])
+            else:
+                self.properties['Cena dohodou'] = False
+                r = re.search('([^€]{1,8}) (€)', self.properties['Cena'])
+                cena = int(r.group(1).replace(' ', ''))
+                self.properties['Cena'] = cena
+                self.properties['Provízia v cene'] = 'Nezname'
+                if 'empty1' in self.properties:
+                    r = re.search('([^€]*) (€/m2)', self.properties['empty1'])
+                    try:
+                        cena_meter = int(r.group(1).replace(' ',''))
+                    except:
+                        pass
+                    else:
+                        self.properties['Cena za meter'] = cena_meter
+                        del(self.properties['empty1'])
 
-        # elif 'Cena vrátane provízie' in self.properties:
-        #     if self.properties['Cena vrátane provízie'].strip() == 'cena dohodou':
-        #         self.properties['Cena dohodou'] = True
-        #         del(self.properties['Cena vrátane provízie'])
-        #     else:
-        #         self.properties['Cena dohodou'] = False
-        #         self.properties['Cena'] = float(self.properties['Cena vrátane provízie'].split(',')[0].replace(' ', ''))
-        #         self.properties['Provízia v cene'] = 'Ano'
-        #         if 'empty1' in self.properties:
-        #             self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
-        #         del(self.properties['Cena vrátane provízie'])
-        # elif 'Cena bez provízie' in self.properties:
-        #     if self.properties['Cena bez provízie'].strip() == 'cena dohodou':
-        #         self.properties['Cena dohodou'] = True
-        #         del(self.properties['Cena bez provízie'])
-        #     else:
-        #         self.properties['Cena dohodou'] = False
-        #         self.properties['Cena'] = float(self.properties['Cena bez provízie'].split(',')[0].replace(' ', ''))
-        #         self.properties['Provízia v cene'] = 'Nie'
-        #         if 'empty1' in self.properties:
-        #             self.properties['Cena za meter'] = float(self.properties['empty0'].split(' ')[0].replace(',', '.'))
-        #         del(self.properties['Cena bez provízie'])
+        elif 'Cena vrátane provízie' in self.properties:
+            if self.properties['Cena vrátane provízie'].strip() == 'cena dohodou':
+                self.properties['Cena dohodou'] = True
+                del(self.properties['Cena vrátane provízie'])
+            else:
+                self.properties['Cena dohodou'] = False
+                r = re.search('([^€]{1,8}) (€)', self.properties['Cena vrátane provízie'])
+                cena = int(r.group(1).replace(' ', ''))
+                self.properties['Cena'] = cena
+                self.properties['Provízia v cene'] = 'Ano'
+                if 'empty1' in self.properties:
+                    r = re.search('([^€]*) (€/m2)', self.properties['empty1'])
+                    try:
+                        cena_meter = int(r.group(1).replace(' ',''))
+                    except:
+                        pass
+                    else:
+                        self.properties['Cena za meter'] = cena_meter
+                        del(self.properties['empty1'])
+                del(self.properties['Cena vrátane provízie'])
+				
+        elif 'Cena bez provízie' in self.properties:
+            if self.properties['Cena bez provízie'].strip() == 'cena dohodou':
+                self.properties['Cena dohodou'] = True
+                del(self.properties['Cena bez provízie'])
+            else:
+                self.properties['Cena dohodou'] = False
+                r = re.search('([^€]{1,8}) (€)', self.properties['Cena bez provízie'])
+                cena = int(r.group(1).replace(' ', ''))
+                self.properties['Cena'] = cena
+                self.properties['Provízia v cene'] = 'Nie'
+                if 'empty1' in self.properties:
+                    r = re.search('([^€]*) (€/m2)', self.properties['empty1'])
+                    try:
+                        cena_meter = int(r.group(1).replace(' ',''))
+                    except:
+                        pass
+                    else:
+                        self.properties['Cena za meter'] = cena_meter
+                        del(self.properties['empty1'])
+                del(self.properties['Cena bez provízie'])
+
+        if 'Aktualizácia' in self.properties:
+            self.properties['Aktualizácia'] = datetime.datetime.strptime(self.properties['Aktualizácia'], '%d.%m.%Y %H:%M:%S')
+
+        if 'Kategória' in self.properties:
+            r = re.search('([^/]*)/ predaj', self.properties['Kategória'])
+            category = r.group(1).replace('\n', '').rstrip()
+            self.properties['Kategória'] = category
+
+        if 'Poschodie' in self.properties:
+            r = re.search('(^\d{1,2})\D*(\d{1,2}$)', self.properties['Poschodie'])
+            self.properties['Poschodie'] = int(r.group(1))
+            self.properties['Pocet poschodi'] = int(r.group(2))
+
+        if 'Zastavaná plocha' in self.properties:
+            r = re.search('(\d{2,3}) m2', self.properties['Zastavaná plocha'])
+            self.properties['Zastavaná plocha'] = int(r.group(1))
+
+        if 'pozemok' in self.properties:
+            r = re.search('(^\d{2,4})', self.properties['pozemok'])
+            self.properties['Pozemok m2'] = int(r.group(1))
+            del(self.properties['pozemok'])
+
+        if 'Úžitková plocha' in self.properties:
+            r = re.search('(^\d{2,4})', self.properties['Úžitková plocha'])
+            self.properties['Úžitková plocha'] = int(r.group(1))
+
+        if '\xa0' in self.properties:
+            self.properties['link'] = self.properties['\xa0']
+            del(self.properties['\xa0'])
 
         # if 'Hypotéka' in self.properties:
         #     self.properties['Hypotéka'] = float(self.properties['Hypotéka'].split(' ')[1])
@@ -325,12 +385,12 @@ class TopRealityAd:
         
         # put all info into one dictionary
         
-        try:
-            self.gallery_dir
-        except:
-            gal_dir = None
-        else:
-            gal_dir = os.getcwd().replace('\\' ,'/') + '/' + self.gallery_dir
+        # try:
+        #     self.gallery_dir
+        # except:
+        #     gal_dir = None
+        # else:
+        #     gal_dir = os.getcwd().replace('\\' ,'/') + '/' + self.gallery_dir
         
         self.ad = {'scraped timestamp':datetime.datetime.now(),
                    'properties':self.properties,
@@ -339,7 +399,7 @@ class TopRealityAd:
                    'tags':self.tags,
                    #'seller':self.seller,
                    #'energycert':self.energycert,
-                   'mapcoord':self.mapcoord,
+                   'mapcoord':self.mapcoord
                    #'gallerydir':gal_dir
 				   }
     
