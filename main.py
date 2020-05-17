@@ -22,9 +22,12 @@ with open('browser_list.data', 'rb') as f:
     browser_list = pickle.load(f)
 
 proxy_list = scrape_proxies()
-proxy_pool = proxyPool(proxy_list, 10, 0.4)
+proxy_pool = proxyPool(proxy_list, 10, 0.3)
 #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-links = scrape_topreality_links(region = 'bratislavsky kraj', pages_to_scrape = 20)
+links_all = scrape_topreality_links(region = 'bratislava / bratislava', pages_to_scrape = 'all') # is already shuffled
+
+scrape_share = 0.1 # scrape % links
+links = links_all[:int(scrape_share * len(links_all))]
 
 for i, link in enumerate(links):
     print('Scraping link %d of %d' %(i, len(links)))

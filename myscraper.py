@@ -653,6 +653,7 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
         select_lokalita3.click()
     # ---
     
+    time.sleep(5)
     results = driver.find_element_by_xpath("//span[@id='foundresults']/strong")
     results_nr = int(results.text.replace(' ', ''))
     results_nr_on_page = 15
@@ -682,26 +683,27 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
     
     # get links on a page - 15 real estate ads
     links = []
-    
-    for i in range(1, pages):
-        if i >= 2:
-            # button_page = driver.find_element_by_xpath("//div[@class='paginatorContainer']//div[@class='paginator']//a[text()='" + str(i) + "']")
-            # button_page.click()
-			
-            paginator_soup = driver.find_element_by_xpath("//div[contains(@class,'col-12') and contains(@class, 'paginatorContainerDown')]")
-            page = paginator_soup.find_element_by_xpath(f"//li[contains(@class, 'page-item') and contains(@class, 'page-item-number')]//a[text()='{i}']")
-            page.click()
-        
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        listing_container = soup.find('div', {'class':'listing'})
-        # for d in listing_container.find_all('div', {'class':re.compile(r'^estate')}):
-        #    links.append(d.find('div', {'class':'thumb'}).a['href'])
-			
-        for h2 in listing_container.find_all('h2', {'class':['card-title', 'mb-0', 'mt-0', 'mt-md-2', 'mt-lg-0' ,'pt-3' ,'pt-sm-0']}):
-            links.append(h2.a['href'])
-        print('Page ' + str(i) + '/' + str(pages - 1) + ' done')
-        wait(minval = 1.5, maxval = 10, meanval = 2.5, std = 2)
-    
+    try:
+        for i in range(1, pages):
+            if i >= 2:
+                # button_page = driver.find_element_by_xpath("//div[@class='paginatorContainer']//div[@class='paginator']//a[text()='" + str(i) + "']")
+                # button_page.click()
+			    
+                paginator_soup = driver.find_element_by_xpath("//div[contains(@class,'col-12') and contains(@class, 'paginatorContainerDown')]")
+                page = paginator_soup.find_element_by_xpath(f"//li[contains(@class, 'page-item') and contains(@class, 'page-item-number')]//a[text()='{i}']")
+                page.click()
+            
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            listing_container = soup.find('div', {'class':'listing'})
+            # for d in listing_container.find_all('div', {'class':re.compile(r'^estate')}):
+            #    links.append(d.find('div', {'class':'thumb'}).a['href'])
+		    	
+            for h2 in listing_container.find_all('h2', {'class':['card-title', 'mb-0', 'mt-0', 'mt-md-2', 'mt-lg-0' ,'pt-3' ,'pt-sm-0']}):
+                links.append(h2.a['href'])
+            print('Page ' + str(i) + '/' + str(pages - 1) + ' done')
+            wait(minval = 1.5, maxval = 10, meanval = 2.5, std = 2)
+    except:
+        pass
     random.shuffle(links)
     driver.close()
     
