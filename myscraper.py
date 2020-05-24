@@ -21,6 +21,7 @@ import scipy.stats
 import base64
 import random
 import numpy as np
+#from proxypool import proxyPool
 
 class TopRealityAd:
     """
@@ -102,17 +103,18 @@ class TopRealityAd:
         
         while success == False:
             time_wait.append(wait())
-            proxy = self.proxy_pool.choose_proxy()
+            proxy = self.proxy_pool if type(self.proxy_pool) == str else self.proxy_pool.choose_proxy()
             useragent = random.choice(self.useragents_list)
             try:
-                response = requests.get(self.url, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30, allow_redirects = False)
+                response = requests.get(self.url, proxies={"https": proxy}, headers = {'User-Agent': useragent}, timeout = 30, allow_redirects = True)
                 if BeautifulSoup(response.content, 'html.parser').find('div', {'class':'properties'}) is None:
                     self.active = False
                     print('Ad was probably deleted.')
                     break
             except:
                 attempts += 1
-                self.proxy_pool.update(proxy, 30)
+                if type(self.proxy_pool) != str:
+                    self.proxy_pool.update(proxy, 30)
             else:
                 attempts += 1
                 r_time_end = time.time()
@@ -120,8 +122,8 @@ class TopRealityAd:
                 self.attempts.append(attempts)
                 self.waits.append(np.sum(time_wait))
                 self.timestamps.append(datetime.datetime.now())
-                
-                self.proxy_pool.update(proxy, response.elapsed.total_seconds())
+                if type(self.proxy_pool) != str:
+                    self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                 self.soup = BeautifulSoup(response.content, 'html.parser')
                 success = True       
                 print('Top reality ad response successful, attempts: ' + str(attempts))
@@ -209,14 +211,15 @@ class TopRealityAd:
                     r_time_start = time.time()
                     while success == False:
                         time_wait.append(wait())
-                        proxy = self.proxy_pool.choose_proxy()
+                        proxy = self.proxy_pool if type(self.proxy_pool) == str else self.proxy_pool.choose_proxy()
                         useragent = random.choice(self.useragents_list)
                         try:
                             response = requests.get(pic_link, stream = True, proxies={"http": proxy, "https": proxy}, headers = {'User-Agent': useragent}, timeout = 30)
                             
                         except:
                             attempts += 1
-                            self.proxy_pool.update(proxy, 30)
+                            if type(self.proxy_pool) != str:
+                                self.proxy_pool.update(proxy, 30)
                             #pass
                         else:
                             attempts += 1
@@ -225,8 +228,8 @@ class TopRealityAd:
                             self.attempts.append(attempts)
                             self.waits.append(np.sum(time_wait))
                             self.timestamps.append(datetime.datetime.now())
-                            
-                            self.proxy_pool.update(proxy, response.elapsed.total_seconds())
+                            if type(self.proxy_pool) != str:
+                                self.proxy_pool.update(proxy, response.elapsed.total_seconds())
                             with open(gallery_dir + '/' + 'img' + str(i) + '.jpg', 'wb') as out_file:
                                 try:
                                     shutil.copyfileobj(response.raw, out_file)

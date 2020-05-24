@@ -80,4 +80,87 @@ t = unique_properties_vals['Úžitková plocha'][0]
 r = re.search('(^\d{2,4})', t)
 tt = int(r.group(1))
 
-# unique values for each of the property
+# proxy testing
+
+import requests
+
+# profile info
+r = requests.get("https://proxy.webshare.io/api/profile/", headers={"Authorization": "Token 367b79438ef3df413c85c749149ded2f28aff639"})
+r.json()
+
+# subscription
+r = requests.get("https://proxy.webshare.io/api/subscription/", headers={"Authorization": "Token 367b79438ef3df413c85c749149ded2f28aff639"})
+r.json()
+
+# proxy config
+r = requests.get("https://proxy.webshare.io/api/proxy/config/", headers={"Authorization": "Token 367b79438ef3df413c85c749149ded2f28aff639"})
+r.json()
+
+# list proxies
+r_list = requests.get("https://proxy.webshare.io/api/proxy/list/", headers={"Authorization": "Token 367b79438ef3df413c85c749149ded2f28aff639"})
+r_list_json = r_list.json()
+
+# proxy stats
+r = requests.get("https://proxy.webshare.io/api/proxy/stats/", headers={"Authorization": "Token 367b79438ef3df413c85c749149ded2f28aff639"})
+r.json()
+
+# test proxy
+import pickle
+with open('browser_list.data', 'rb') as f:
+    browser_list = pickle.load(f)
+	
+r = requests.get('https://api.ipify.org?format=json', 
+				 proxies={"http": 'http://kdpfnrzk-10:w2kti3syhc5f@85.209.129.161:20009', "https": 'https://kdpfnrzk-10:w2kti3syhc5f@85.209.129.161:20009'}, 
+				 headers = {'User-Agent': browser_list[0]}, 
+				 timeout = 30, 
+				 allow_redirects = False)
+r.content
+
+# test on local simple http server to see the request
+r = requests.get('http://127.0.0.1:8000', 
+				 headers = {'User-Agent': browser_list[0]}, 
+				 timeout = 30, 
+				 allow_redirects = False)
+r.content
+r.url
+r.text
+r.encoding
+r.raw
+r.status_code
+r.headers
+r.cookies
+r.history
+
+# test to webhook.site
+r = requests.get('https://webhook.site/0882e9a7-3d32-4243-a8e4-113a1d5948e5',
+				 proxies={"http": 'http://kdpfnrzk-10:w2kti3syhc5f@85.209.129.161:20009', "https": 'https://kdpfnrzk-10:w2kti3syhc5f@85.209.129.161:20009'}, 
+				 headers = {'User-Agent': browser_list[0]}, 
+				 timeout = 30, 
+				 allow_redirects = False)
+r.content
+
+# test rotating proxy
+r = requests.get('https://webhook.site/0882e9a7-3d32-4243-a8e4-113a1d5948e5',
+				 proxies={"https": 'http://kdpfnrzk-rotate:w2kti3syhc5f@p.webshare.io'}, 
+				 headers = {'User-Agent': browser_list[0]}, 
+				 timeout = 30, 
+				 allow_redirects = True)
+r.content
+
+# create json file with rotating proxy login
+import json
+
+with open('rotating_proxy.json', 'w') as f:
+	json.dump({'rotating_proxy':'http://kdpfnrzk-rotate:w2kti3syhc5f@p.webshare.io'}, f)
+
+# MONGO tests
+import pymongo
+myclient = pymongo.MongoClient('mongodb://localhost:27017')
+scrapedb = myclient['scrapedb']
+adcollection = scrapedb['ads']
+
+# delete documents matching a condition
+result = adcollection.delete_many({'scraped timestamp':{'$lt':datetime.strptime('2020-05-04', '%Y-%m-%d')}})
+result.deleted_count
+
+
