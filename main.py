@@ -29,7 +29,7 @@ with open('rotating_proxy.json', 'r') as f:
 #pp = proxy_pool_test(proxy_pool, browser_list, 10)
 links_all = scrape_topreality_links(region = 'bratislava / bratislava', pages_to_scrape = 100) # is already shuffled
 
-scrape_share = 0.5 # scrape % links
+scrape_share = 1 # scrape % links
 links = links_all[:int(scrape_share * len(links_all))]
 
 for i, link in enumerate(links):

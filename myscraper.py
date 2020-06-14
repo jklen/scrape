@@ -362,7 +362,7 @@ class TopRealityAd:
             del(self.properties['pozemok'])
 
         if 'Úžitková plocha' in self.properties:
-            r = re.search('(^\d{2,4})', self.properties['Úžitková plocha'])
+            r = re.search('(^\d{1,4})', self.properties['Úžitková plocha'])
             self.properties['Úžitková plocha'] = int(r.group(1))
 
         if '\xa0' in self.properties:
