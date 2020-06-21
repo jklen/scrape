@@ -641,6 +641,7 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
 	
     cookies_ok = driver.find_element_by_id('cookiesOk')
     cookies_ok.click()
+    time.sleep(2)
     
     if region != None:
         select_lokalita = driver.find_element_by_xpath("//div[@id='n_srch_obec_suggest']/div[@class='ms-sel-ctn']/input[@placeholder='Okres, obec']")
