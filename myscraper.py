@@ -148,8 +148,10 @@ class TopRealityAd:
         """
         Scrapes text of the ad
         """
-        
-        self.text = self.soup.find('p', {'class':'descriptionTextFade'}).text
+        try:
+            self.text = self.soup.find('p', {'class':'descriptionTextFade'}).text
+        except:
+            pass
     
     def scrape_tags(self):
         """
@@ -284,7 +286,10 @@ class TopRealityAd:
             else:
                 self.properties['Cena dohodou'] = False
                 r = re.search('([^€]{1,8}) (€)', self.properties['Cena'])
-                cena = int(r.group(1).replace(' ', ''))
+                try:
+                    cena = int(r.group(1).replace(' ', ''))
+                except ValueError as e:
+                    cena = int(r.group(1).replace(',00', ''))
                 self.properties['Cena'] = cena
                 self.properties['Provízia v cene'] = 'Nezname'
                 if 'empty1' in self.properties:
@@ -705,7 +710,7 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
             for h2 in listing_container.find_all('h2', {'class':['card-title', 'mb-0', 'mt-0', 'mt-md-2', 'mt-lg-0' ,'pt-3' ,'pt-sm-0']}):
                 links.append(h2.a['href'])
             print('Page ' + str(i) + '/' + str(pages - 1) + ' done')
-            wait(minval = 1.5, maxval = 10, meanval = 2.5, std = 2)
+            wait(minval = 1.5, maxval = 15, meanval = 8, std = 6)
     except:
         pass
     random.shuffle(links)
