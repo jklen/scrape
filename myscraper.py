@@ -710,7 +710,7 @@ def scrape_topreality_links(region = None, pages_to_scrape = 5):
             for h2 in listing_container.find_all('h2', {'class':['card-title', 'mb-0', 'mt-0', 'mt-md-2', 'mt-lg-0' ,'pt-3' ,'pt-sm-0']}):
                 links.append(h2.a['href'])
             print('Page ' + str(i) + '/' + str(pages - 1) + ' done')
-            wait(minval = 1.5, maxval = 15, meanval = 8, std = 6)
+            wait(minval = 1.5, maxval = 10, meanval = 4, std = 4)
     except:
         pass
     random.shuffle(links)
