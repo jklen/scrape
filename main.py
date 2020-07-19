@@ -27,7 +27,7 @@ with open('browser_list.data', 'rb') as f:
 with open('rotating_proxy.json', 'r') as f:
 	proxy_pool = json.load(f)['rotating_proxy'] # proxy_pool as str with just one rotating proxy
 #pp = proxy_pool_test(proxy_pool, browser_list, 10)
-links_all = scrape_topreality_links(region = 'bratislava / bratislava', pages_to_scrape = 100) # is already shuffled
+links_all = scrape_topreality_links(region = 'bratislava / bratislava', pages_to_scrape = 'all') # is already shuffled
 
 scrape_share = 1 # scrape % links
 links = links_all[:int(scrape_share * len(links_all))]
